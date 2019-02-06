@@ -102,3 +102,13 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# coverage
+cover/
+
+#JetBrains
+.idea/
+*.iml
+
+#config files
+nimrod/tests/env-config.json
