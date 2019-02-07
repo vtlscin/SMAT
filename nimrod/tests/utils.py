@@ -9,3 +9,16 @@ def get_config():
         j = json.loads(j.read())
 
     return j
+
+
+def path_calculator_project():
+    return os.path.join(PATH, 'example')
+
+
+def path_calculator_package():
+    return os.path.join(path_calculator_project(), 'src', 'main', 'java', 'br',
+                        'ufal', 'ic', 'easy')
+
+
+def path_calculator_file():
+    return os.path.join(path_calculator_package(), 'Calculator.java')

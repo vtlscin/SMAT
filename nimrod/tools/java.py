@@ -21,8 +21,8 @@ class Java:
                 print('JAVA_HOME undefined.')
                 raise SystemExit()
 
-        self._version_javac(exit_on_error=True)
-        self._version_java(exit_on_error=True)
+        if not self._version_javac() or not self._version_java():
+            raise SystemExit()
 
     @property
     def javac(self):
@@ -32,21 +32,11 @@ class Java:
     def java(self):
         return os.path.join(self.java_home, os.sep.join(['jre', 'bin', 'java']))
 
-    def _version_javac(self, exit_on_error=False):
-        try:
-            self.simple_exec_javac('-version')
-        except OSError:
-            print('javac not found.')
-            if exit_on_error:
-                raise SystemExit()
+    def _version_javac(self):
+        return self.simple_exec_javac('-version')
 
-    def _version_java(self, exit_on_error=False):
-        try:
-            self.simple_exec_java('-version')
-        except OSError:
-            print('java not found.')
-            if exit_on_error:
-                raise SystemExit()
+    def _version_java(self):
+        return self.simple_exec_java('-version')
 
     def simple_exec_java(self, *args):
         return self.exec_java(None, self.get_env(), TIMEOUT, *args)
@@ -70,12 +60,18 @@ class Java:
             command = [program] + list(args)
 
             return subprocess.check_output(command, cwd=cwd, env=env,
-                                           timeout=timeout)
-        except subprocess.CalledProcessError:
+                                           timeout=timeout,
+                                           stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
             print('{0}: call process error with arguments {1}.'.format(
                 program, args))
-        except subprocess.TimeoutExpired:
+            raise e
+        except subprocess.TimeoutExpired as e:
             print('{0}: timeout with arguments {1}.'.format(program, args))
+            raise e
+        except FileNotFoundError as e:
+            print('{0}: not found.'.format(program))
+            raise e
 
     def get_env(self, variables=None):
         env = os.environ.copy()
@@ -84,3 +80,5 @@ class Java:
         if variables:
             for key in variables.keys():
                 env[key] = variables[key]
+
+        return env

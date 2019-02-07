@@ -112,3 +112,6 @@ cover/
 
 #config files
 nimrod/tests/env-config.json
+
+#test files
+*.class
