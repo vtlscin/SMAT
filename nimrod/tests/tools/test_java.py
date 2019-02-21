@@ -29,11 +29,11 @@ class TestJava(TestCase):
 
     def test_init_wrong_java_home(self):
         os.environ['JAVA_HOME'] = 'wrong_path'
-        with self.assertRaises(FileNotFoundError):
+        with self.assertRaises(SystemExit):
             Java()
 
     def test_init_with_wrong_parameter(self):
-        with self.assertRaises(FileNotFoundError):
+        with self.assertRaises(SystemExit):
             Java('wrong_path')
 
     def test_javac_path(self):
@@ -50,6 +50,12 @@ class TestJava(TestCase):
             os.path.join(self.java_home, os.sep.join(['jre', 'bin', 'java'])),
             java.java)
 
+    def test_maven_wrong_args(self):
+        java = Java(self.java_home)
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            java.exec_javac(path_calculator_file(), None, None, 10, '< x')
+
     def test_compile_java_file(self):
         java = Java(self.java_home)
 
@@ -61,6 +67,7 @@ class TestJava(TestCase):
         java.exec_javac(path_calculator_file(), None, None, 10)
 
         self.assertTrue(os.path.isfile(class_file))
+        os.remove(class_file)
 
     def test_java_timeout(self):
         java = Java(self.java_home)

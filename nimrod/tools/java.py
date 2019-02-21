@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 
 TIMEOUT = 10 * 60
@@ -10,19 +11,23 @@ class Java:
         self.java_home = java_home
         self._javac = None
         self._java = None
-
+        self._set_home()
         self._check()
 
     def _check(self):
+        try:
+            self._version_javac()
+            self._version_java()
+        except FileNotFoundError:
+            raise SystemExit()
+
+    def _set_home(self):
         if not self.java_home:
             if 'JAVA_HOME' in os.environ and os.environ['JAVA_HOME']:
                 self.java_home = os.environ['JAVA_HOME']
             else:
-                print('JAVA_HOME undefined.')
+                print('JAVA_HOME undefined.', file=sys.stderr)
                 raise SystemExit()
-
-        if not self._version_javac() or not self._version_java():
-            raise SystemExit()
 
     @property
     def javac(self):
@@ -64,13 +69,14 @@ class Java:
                                            stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             print('{0}: call process error with arguments {1}.'.format(
-                program, args))
+                program, args), file=sys.stderr)
             raise e
         except subprocess.TimeoutExpired as e:
-            print('{0}: timeout with arguments {1}.'.format(program, args))
+            print('{0}: timeout with arguments {1}.'.format(program, args)
+                  , file=sys.stderr)
             raise e
         except FileNotFoundError as e:
-            print('{0}: not found.'.format(program))
+            print('{0}: not found.'.format(program), file=sys.stderr)
             raise e
 
     def get_env(self, variables=None):
