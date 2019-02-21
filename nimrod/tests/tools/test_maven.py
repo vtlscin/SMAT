@@ -1,9 +1,10 @@
 import os
 import subprocess
-import shutil
 
 from unittest import TestCase
-from nimrod.tests.utils import get_config, path_calculator_project
+from nimrod.tests.utils import get_config
+from nimrod.tests.utils import calculator_project_dir
+from nimrod.tests.utils import calculator_clean_project
 from nimrod.tools.java import Java
 from nimrod.tools.maven import Maven
 
@@ -64,24 +65,16 @@ class TestMaven(TestCase):
             maven.compile('.', timeout=10)
 
     def test_compile_in_maven_project_dir(self):
-        project_dir = os.path.join(path_calculator_project(), '..', 'example')
+        project_dir = os.path.join(calculator_project_dir(), '..', 'example')
 
-        self._clean_project(project_dir)
+        calculator_clean_project()
 
         maven = Maven(java=self.java, maven_home=self.maven_home)
         maven.compile(project_dir, timeout=10)
 
         self.assertTrue(os.path.exists(os.path.join(project_dir, 'target')))
 
-        self._clean_project(project_dir)
-
-    @staticmethod
-    def _clean_project(project_dir):
-        target_dir = os.path.join(project_dir, 'target')
-
-        if os.path.exists(target_dir):
-            shutil.rmtree(target_dir)
-
+        calculator_clean_project()
 
     @staticmethod
     def _clear_environment():

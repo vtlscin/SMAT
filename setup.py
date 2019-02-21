@@ -19,7 +19,8 @@ setup(
     license='MIT',
     packages=[
         'nimrod',
-        'nimrod.tools'
+        'nimrod.tools',
+        'nimrod.tools.testing'
     ],
     install_requires=[
         'argparse==1.4.0'

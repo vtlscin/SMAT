@@ -82,6 +82,8 @@ class Java:
     def get_env(self, variables=None):
         env = os.environ.copy()
         env['JAVA_HOME'] = self.java_home
+        env['PATH'] = (os.environ['PATH'] + os.pathsep
+                       + os.path.join(self.java_home, 'bin'))
 
         if variables:
             for key in variables.keys():

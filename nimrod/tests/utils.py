@@ -1,5 +1,6 @@
 import os
 import json
+import shutil
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -11,14 +12,29 @@ def get_config():
     return j
 
 
-def path_calculator_project():
+def calculator_project_dir():
     return os.path.join(PATH, 'example')
 
 
-def path_calculator_package():
-    return os.path.join(path_calculator_project(), 'src', 'main', 'java', 'br',
+def calculator_package():
+    return 'br.ufal.ic.easy'
+
+
+def calculator_package_dir():
+    return os.path.join(calculator_project_dir(), 'src', 'main', 'java', 'br',
                         'ufal', 'ic', 'easy')
 
 
-def path_calculator_file():
-    return os.path.join(path_calculator_package(), 'Calculator.java')
+def calculator_java_file():
+    return os.path.join(calculator_package_dir(), 'Calculator.java')
+
+
+def calculator_target_dir():
+    return os.path.join(calculator_project_dir(), 'target')
+
+
+def calculator_clean_project():
+    target_dir = calculator_target_dir()
+
+    if os.path.exists(target_dir):
+        shutil.rmtree(target_dir)

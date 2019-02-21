@@ -4,8 +4,8 @@ import subprocess
 from unittest import TestCase
 from nimrod.tools.java import Java
 from nimrod.tests.utils import get_config
-from nimrod.tests.utils import path_calculator_file
-from nimrod.tests.utils import path_calculator_package
+from nimrod.tests.utils import calculator_java_file
+from nimrod.tests.utils import calculator_package_dir
 
 
 class TestJava(TestCase):
@@ -54,17 +54,17 @@ class TestJava(TestCase):
         java = Java(self.java_home)
 
         with self.assertRaises(subprocess.CalledProcessError):
-            java.exec_javac(path_calculator_file(), None, None, 10, '< x')
+            java.exec_javac(calculator_java_file(), None, None, 10, '< x')
 
     def test_compile_java_file(self):
         java = Java(self.java_home)
 
-        class_file = os.path.join(path_calculator_package(), 'Calculator.class')
+        class_file = os.path.join(calculator_package_dir(), 'Calculator.class')
 
         if os.path.isfile(class_file):
             os.remove(class_file)
 
-        java.exec_javac(path_calculator_file(), None, None, 10)
+        java.exec_javac(calculator_java_file(), None, None, 10)
 
         self.assertTrue(os.path.isfile(class_file))
         os.remove(class_file)
@@ -73,7 +73,7 @@ class TestJava(TestCase):
         java = Java(self.java_home)
 
         with self.assertRaises(subprocess.TimeoutExpired):
-            java.exec_javac(path_calculator_file(), None, None, 0)
+            java.exec_javac(calculator_java_file(), None, None, 0)
 
     def test_get_env(self):
         java = Java(self.java_home)
