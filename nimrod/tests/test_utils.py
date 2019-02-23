@@ -28,59 +28,66 @@ class TestUtils(TestCase):
         classes = get_files(calculator_target_dir())
 
         self.assertEqual(8, len(classes))
-        self.assertEqual(('maven-status/maven-compiler-plugin/compile/'
-                         + 'default-compile/inputFiles.lst'), classes[0])
-        self.assertEqual(('maven-status/maven-compiler-plugin/compile/'
-                         + 'default-compile/createdFiles.lst'), classes[1])
-        self.assertEqual('classes/br/ufal/ic/easy/Calculator.class',
-                         classes[2])
-        self.assertEqual('classes/br/ufal/ic/easy/operations/Sum.class',
-                         classes[3])
-        self.assertEqual('classes/br/ufal/ic/easy/operations/Operation.class',
-                         classes[4])
-        self.assertEqual('classes/br/ufal/ic/easy/operations/Div.class',
-                         classes[5])
-        self.assertEqual('classes/br/ufal/ic/easy/operations/Sub.class',
-                         classes[6])
-        self.assertEqual('classes/br/ufal/ic/easy/operations/Mul.class',
-                         classes[7])
+        self.assertTrue(('maven-status/maven-compiler-plugin/compile/'
+                         + 'default-compile/inputFiles.lst') in classes)
+        self.assertTrue(('maven-status/maven-compiler-plugin/compile/'
+                         + 'default-compile/createdFiles.lst') in classes)
+        self.assertTrue('classes/br/ufal/ic/easy/Calculator.class'
+                        in classes)
+        self.assertTrue('classes/br/ufal/ic/easy/operations/Sum.class'
+                        in classes)
+        self.assertTrue('classes/br/ufal/ic/easy/operations/Operation.class'
+                        in classes)
+        self.assertTrue('classes/br/ufal/ic/easy/operations/Div.class'
+                        in classes)
+        self.assertTrue('classes/br/ufal/ic/easy/operations/Sub.class'
+                        in classes)
+        self.assertTrue('classes/br/ufal/ic/easy/operations/Mul.class'
+                        in classes)
 
     def test_get_class_files(self):
         classes = get_class_files(calculator_target_dir())
 
         self.assertEqual(6, len(classes))
-        self.assertEqual('classes/br/ufal/ic/easy/Calculator.class',
-                         classes[0])
-        self.assertEqual('classes/br/ufal/ic/easy/operations/Sum.class',
-                         classes[1])
-        self.assertEqual('classes/br/ufal/ic/easy/operations/Operation.class',
-                         classes[2])
-        self.assertEqual('classes/br/ufal/ic/easy/operations/Div.class',
-                         classes[3])
-        self.assertEqual('classes/br/ufal/ic/easy/operations/Sub.class',
-                         classes[4])
-        self.assertEqual('classes/br/ufal/ic/easy/operations/Mul.class',
-                         classes[5])
+        self.assertTrue('classes/br/ufal/ic/easy/Calculator.class'
+                        in classes)
+        self.assertTrue('classes/br/ufal/ic/easy/operations/Sum.class'
+                        in classes)
+        self.assertTrue('classes/br/ufal/ic/easy/operations/Operation.class'
+                        in classes)
+        self.assertTrue('classes/br/ufal/ic/easy/operations/Div.class'
+                        in classes)
+        self.assertTrue('classes/br/ufal/ic/easy/operations/Sub.class'
+                        in classes)
+        self.assertTrue('classes/br/ufal/ic/easy/operations/Mul.class'
+                        in classes)
 
     def test_get_java_files(self):
         classes = get_java_files(calculator_project_dir())
 
         self.assertEqual(6, len(classes))
-        self.assertEqual('src/main/java/br/ufal/ic/easy/Calculator.java',
-                         classes[0])
-        self.assertEqual('src/main/java/br/ufal/ic/easy/operations/Sum.java',
-                         classes[1])
-        self.assertEqual('src/main/java/br/ufal/ic/easy/operations/Div.java',
-                         classes[2])
-        self.assertEqual(('src/main/java/br/ufal/ic/easy/operations/'
-                          'Operation.java'), classes[3])
-        self.assertEqual('src/main/java/br/ufal/ic/easy/operations/Sub.java',
-                         classes[4])
-        self.assertEqual('src/main/java/br/ufal/ic/easy/operations/Mul.java',
-                         classes[5])
+        self.assertTrue('src/main/java/br/ufal/ic/easy/Calculator.java'
+                        in classes)
+        self.assertTrue('src/main/java/br/ufal/ic/easy/operations/Sum.java'
+                        in classes)
+        self.assertTrue('src/main/java/br/ufal/ic/easy/operations/Div.java'
+                        in classes)
+        self.assertTrue(('src/main/java/br/ufal/ic/easy/operations/'
+                         + 'Operation.java') in classes)
+        self.assertTrue('src/main/java/br/ufal/ic/easy/operations/Sub.java'
+                        in classes)
+        self.assertTrue('src/main/java/br/ufal/ic/easy/operations/Mul.java'
+                        in classes)
 
     def test_generate_classpath(self):
         path = generate_classpath(['a', 'b', 'c'])
+        path_split = path.split(os.pathsep)
+        self.assertEqual('a', path_split[0])
+        self.assertEqual('b', path_split[1])
+        self.assertEqual('c', path_split[2])
+
+    def test_generate_classpath_with_invalid_paths(self):
+        path = generate_classpath(['a', None, 'b', '', 'c'])
         path_split = path.split(os.pathsep)
         self.assertEqual('a', path_split[0])
         self.assertEqual('b', path_split[1])
