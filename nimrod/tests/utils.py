@@ -38,3 +38,9 @@ def calculator_clean_project():
 
     if os.path.exists(target_dir):
         shutil.rmtree(target_dir)
+
+def calculator_mutants_dir():
+    return os.path.join(calculator_project_dir(), 'mutants')
+
+def calculator_mutants_log():
+    return os.path.join(calculator_mutants_dir(), 'mutation_log')
