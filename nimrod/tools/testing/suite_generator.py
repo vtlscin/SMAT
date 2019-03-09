@@ -7,16 +7,13 @@ import subprocess
 
 from nimrod.utils import get_java_files
 from nimrod.utils import generate_classpath
-
-PATH = os.path.dirname(os.path.abspath(__file__))
+from nimrod.tools.bin import JUNIT, HAMCREST
 
 TIMEOUT = 5 * 60
 COMPILE_TIMEOUT = 20
-JUNIT = os.sep.join([PATH, '..', 'bin', 'junit-4.12.jar'])
-HAMCREST = os.sep.join([PATH, '..', 'bin', 'hamcrest-core-1.3.jar'])
 
 
-class TestGenerator(ABC):
+class SuiteGenerator(ABC):
 
     def __init__(self, java, classpath, tests_src, sut_class):
         self.java = java

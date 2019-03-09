@@ -1,21 +1,18 @@
-from nimrod.tools.testing.test_generator import TestGenerator
+from nimrod.tools.testing.suite_generator import SuiteGenerator
 
-import os
 import random
 
 from nimrod.utils import generate_classpath
-
-PATH = os.path.dirname(os.path.abspath(__file__))
-RANDOOP = os.sep.join([PATH, '..', 'bin', 'randoop-all-4.0.3.jar'])
+from nimrod.tools.bin import RANDOOP
 
 
-class Randoop(TestGenerator):
+class Randoop(SuiteGenerator):
 
     def _get_tool_name(self):
         return "randoop"
 
     def _exec_tool(self):
-        command = [
+        params = [
             '-classpath', generate_classpath([self.classpath, RANDOOP]),
             'randoop.main.Main',
             'gentests',
@@ -24,9 +21,9 @@ class Randoop(TestGenerator):
             '--junit-output-dir=' + self.suite_dir
         ]
 
-        command += self.parameters
+        params += self.parameters
 
-        return self._exec(*tuple(command))
+        return self._exec(*tuple(params))
 
     def _test_classes(self):
         return ['RegressionTest']

@@ -8,13 +8,13 @@ from nimrod.tests.utils import calculator_project_dir
 from nimrod.tests.utils import calculator_clean_project
 from nimrod.tests.utils import calculator_target_dir
 
-from nimrod.utils import get_java_files, get_class_files
 from nimrod.tools.java import Java
 from nimrod.tools.maven import Maven
 from nimrod.tools.testing.randoop import Randoop
+from nimrod.tools.testing.junit import JUnit
 
 
-class TestRandoop(TestCase):
+class TestJUnit(TestCase):
 
     def setUp(self):
         self.java_home = get_config()['java_home']
@@ -25,29 +25,36 @@ class TestRandoop(TestCase):
 
         self.maven.compile(calculator_project_dir(), 10)
 
-    def test_generate(self):
-
+    def test_run_junit(self):
+        classpath = os.path.join(calculator_target_dir(), 'classes')
         tests_src = os.path.join(calculator_project_dir(), 'randoop')
+        junit = JUnit(self.java, classpath)
 
+        sut_class = 'br.ufal.ic.easy.operations.Sum'
+
+        (suite_name, suite_dir, suite_classes_dir,
+         suite_classes) = self.generate_suite(tests_src, sut_class)
+
+        output = junit.exec(suite_dir, suite_classes_dir, sut_class,
+                            suite_classes[0])
+
+        self.assertTrue(output[0][0] > 0)
+        self.assertTrue(output[0][1] == 0)
+        self.assertTrue(len(output[0][2]) == 0)
+        self.assertTrue(output[1] > 0)
+
+        shutil.rmtree(tests_src)
+
+    def generate_suite(self, tests_src, sut_class):
         randoop = Randoop(
             java=self.java,
             classpath=os.path.join(calculator_target_dir(), 'classes'),
             tests_src=tests_src,
-            sut_class='br.ufal.ic.easy.operations.Sum'
+            sut_class=sut_class
         )
         randoop.parameters = ['--time-limit=1']
 
-        (suite_name, suite_dir, suite_classes_dir,
-         suite_classes) = randoop.generate()
-
-        self.assertTrue(suite_name.startswith('randoop'))
-        self.assertTrue(os.path.exists(suite_dir))
-
-        self.assertTrue(len(get_java_files(suite_dir)) > 1)
-        self.assertTrue(len(get_class_files(suite_classes_dir)) > 1)
-        self.assertEquals(1, len(suite_classes))
-
-        shutil.rmtree(tests_src)
+        return randoop.generate()
 
     def tearDown(self):
         calculator_clean_project()
