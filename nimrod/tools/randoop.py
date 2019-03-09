@@ -1,4 +1,4 @@
-from nimrod.tools.testing.suite_generator import SuiteGenerator
+from nimrod.tools.suite_generator import SuiteGenerator
 
 import random
 

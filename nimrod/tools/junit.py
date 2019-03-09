@@ -2,10 +2,16 @@ import re
 import time
 import subprocess
 
+from collections import namedtuple
+
 from nimrod.tools.bin import JUNIT, HAMCREST, JMOCKIT, EVOSUITE
 from nimrod.utils import generate_classpath
 
 TIMEOUT = 60 * 3
+
+
+JUnitResult = namedtuple('JUnitResult', ['ok_tests', 'fail_tests', 
+                                         'fail_test_set', 'run_time'])
 
 
 class JUnit:
@@ -36,18 +42,22 @@ class JUnit:
         try:
             output = self.java.exec_java(suite_dir, self.java.get_env(),
                                          timeout, *params)
-            return (JUnit._extract_results_ok(output.decode('unicode_escape')),
-                    time.time() - start)
+            return JUnitResult(
+                *JUnit._extract_results_ok(output.decode('unicode_escape')),
+                time.time() - start
+            )
         except subprocess.CalledProcessError as e:
-            return (JUnit._extract_results(e.output.decode('unicode_escape')),
-                    time.time() - start)
+            return JUnitResult(
+                *JUnit._extract_results(e.output.decode('unicode_escape')),
+                time.time() - start
+            )
         except subprocess.TimeoutExpired:
             elapsed_time = time.time() - start
             print("# ERROR: Run JUnit tests timed out. {0} seconds".format(
                 elapsed_time
             ))
 
-        return (0, 0, set()), elapsed_time
+        return JUnitResult(0, 0, set(), elapsed_time)
 
     @staticmethod
     def _extract_results_ok(output):

@@ -10,8 +10,8 @@ from nimrod.tests.utils import calculator_target_dir
 
 from nimrod.tools.java import Java
 from nimrod.tools.maven import Maven
-from nimrod.tools.testing.randoop import Randoop
-from nimrod.tools.testing.junit import JUnit
+from nimrod.tools.randoop import Randoop
+from nimrod.tools.junit import JUnit
 
 
 class TestJUnit(TestCase):
@@ -38,10 +38,10 @@ class TestJUnit(TestCase):
         output = junit.exec(suite_dir, suite_classes_dir, sut_class,
                             suite_classes[0])
 
-        self.assertTrue(output[0][0] > 0)
-        self.assertTrue(output[0][1] == 0)
-        self.assertTrue(len(output[0][2]) == 0)
-        self.assertTrue(output[1] > 0)
+        self.assertTrue(output.ok_tests > 0)
+        self.assertTrue(output.fail_tests == 0)
+        self.assertTrue(len(output.fail_test_set) == 0)
+        self.assertTrue(output.run_time > 0)
 
         shutil.rmtree(tests_src)
 

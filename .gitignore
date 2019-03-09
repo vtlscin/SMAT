@@ -115,3 +115,6 @@ nimrod/tests/env-config.json
 
 #test files
 *.class
+
+#Microsoft
+.vscode/

@@ -11,7 +11,7 @@ from nimrod.tests.utils import calculator_target_dir
 from nimrod.utils import get_java_files, get_class_files
 from nimrod.tools.java import Java
 from nimrod.tools.maven import Maven
-from nimrod.tools.testing.randoop import Randoop
+from nimrod.tools.randoop import Randoop
 
 
 class TestRandoop(TestCase):
