@@ -63,7 +63,7 @@ class TestUtils(TestCase):
                         in classes)
 
     def test_get_java_files(self):
-        classes = get_java_files(calculator_project_dir())
+        classes = get_java_files(os.path.join(calculator_project_dir(), 'src'))
 
         self.assertEqual(6, len(classes))
         self.assertTrue('src/main/java/br/ufal/ic/easy/Calculator.java'
