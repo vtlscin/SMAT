@@ -7,11 +7,13 @@ from nimrod.tests.utils import get_config
 from nimrod.tests.utils import calculator_project_dir
 from nimrod.tests.utils import calculator_clean_project
 from nimrod.tests.utils import calculator_target_dir
+from nimrod.tests.utils import calculator_src_aor_1
 
 from nimrod.utils import get_java_files, get_class_files
 from nimrod.tools.java import Java
 from nimrod.tools.maven import Maven
 from nimrod.tools.randoop import Randoop
+from nimrod.tools.safira import Safira
 
 
 class TestRandoop(TestCase):
@@ -39,6 +41,33 @@ class TestRandoop(TestCase):
 
         (suite_name, suite_dir, suite_classes_dir,
          suite_classes) = randoop.generate()
+
+        self.assertTrue(suite_name.startswith('randoop'))
+        self.assertTrue(os.path.exists(suite_dir))
+
+        self.assertTrue(len(get_java_files(suite_dir)) > 1)
+        self.assertTrue(len(get_class_files(suite_classes_dir)) > 1)
+        self.assertEquals(1, len(suite_classes))
+
+        shutil.rmtree(tests_src)
+
+    def test_generate_with_impact_analysis(self):
+        tests_src = os.path.join(calculator_project_dir(), 'randoop')
+        classes_dir = os.path.join(calculator_target_dir(), 'classes')
+
+        randoop = Randoop(
+            java=self.java,
+            classpath=classes_dir,
+            tests_src=tests_src,
+            sut_class='br.ufal.ic.easy.operations.Sum'
+        )
+        randoop.parameters = ['--time-limit=1']
+
+        safira = Safira(self.java, classes_dir,
+                        calculator_src_aor_1())
+
+        (suite_name, suite_dir, suite_classes_dir,
+         suite_classes) = randoop.generate_with_impact_analysis(safira)
 
         self.assertTrue(suite_name.startswith('randoop'))
         self.assertTrue(os.path.exists(suite_dir))

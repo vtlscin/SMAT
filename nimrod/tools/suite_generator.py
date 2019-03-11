@@ -60,8 +60,8 @@ class SuiteGenerator(ABC):
             return self.java.exec_java(self.tests_src, self.java.get_env(),
                                        self._get_timeout(), *command)
         except subprocess.CalledProcessError as e:
-            print('{0}: call process error with command {1}.'.format(
-                self._get_tool_name(), command), file=sys.stderr)
+            print('{0}: call process error with command {1}: {2}'.format(
+                self._get_tool_name(), command, e.output), file=sys.stderr)
             raise e
         except subprocess.TimeoutExpired as e:
             print('{0}: timeout with command {1}.'.format(
@@ -84,8 +84,9 @@ class SuiteGenerator(ABC):
             shutil.rmtree(path)
         os.makedirs(path, exist_ok=True)
 
-    def generate(self):
-        self._make_src_dir()
+    def generate(self, make_dir=True):
+        if make_dir:
+            self._make_src_dir()
         self._exec_tool()
         self._compile()
 
