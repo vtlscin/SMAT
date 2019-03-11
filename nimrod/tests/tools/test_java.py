@@ -6,6 +6,7 @@ from nimrod.tools.java import Java
 from nimrod.tests.utils import get_config
 from nimrod.tests.utils import calculator_java_file
 from nimrod.tests.utils import calculator_package_dir
+from nimrod.tests.utils import calculator_operation_java_file
 
 
 class TestJava(TestCase):
@@ -59,12 +60,13 @@ class TestJava(TestCase):
     def test_compile_java_file(self):
         java = Java(self.java_home)
 
-        class_file = os.path.join(calculator_package_dir(), 'Calculator.class')
+        class_file = os.path.join(calculator_package_dir(), 'operations',
+                                  'Operation.class')
 
         if os.path.isfile(class_file):
             os.remove(class_file)
 
-        java.exec_javac(calculator_java_file(), None, None, 10)
+        java.exec_javac(calculator_operation_java_file(), None, None, 10)
 
         self.assertTrue(os.path.isfile(class_file))
         os.remove(class_file)

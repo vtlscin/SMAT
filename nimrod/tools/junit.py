@@ -28,7 +28,8 @@ class JUnit:
             self.classpath
         ])
 
-        return self._exec(suite_dir, sut_class, test_class, classpath, timeout)
+        return self._exec(suite_dir, sut_class, test_class, classpath, '.',
+                          timeout)
 
     def exec_with_mutant(self, suite_dir, suite_classes_dir, sut_class,
                          test_class, mutant, timeout=TIMEOUT):
@@ -39,17 +40,18 @@ class JUnit:
             self.classpath
         ])
 
-        return self._exec(suite_dir, sut_class, test_class, classpath, timeout)
+        return self._exec(suite_dir, sut_class, test_class, classpath,
+                          mutant.dir, timeout)
 
     def _exec(self, suite_dir, sut_class, test_class, classpath,
-              timeout=TIMEOUT):
+              cov_src_dirs='.', timeout=TIMEOUT):
 
         params = (
             '-classpath', classpath,
             '-Dcoverage-classes=' + sut_class,
             '-Dcoverage-output=html',
             '-Dcoverage-metrics=line',
-            '-Dcoverage-srcDirs=' + '.',
+            '-Dcoverage-srcDirs=' + cov_src_dirs,
             'org.junit.runner.JUnitCore', test_class
         )
 
