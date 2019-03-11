@@ -16,7 +16,8 @@ from nimrod.tools.junit import JUnit
 
 class TestJUnit(TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.java_home = get_config()['java_home']
         self.maven_home = get_config()['maven_home']
 
