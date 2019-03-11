@@ -3,18 +3,21 @@ from unittest import TestCase
 
 from nimrod.tests.utils import calculator_mutants_dir
 from nimrod.tests.utils import calculator_mutants_log
+from nimrod.tests.utils import get_config
 
 from nimrod.tools.mujava import MuJava
+from nimrod.tools.java import Java
 
 
 class TestMuJava(TestCase):
 
     def setUp(self):
-        pass
+        self.java_home = get_config()['java_home']
+        self.java = Java(self.java_home)
 
     def test_read_log_with_log_dir(self):
 
-        mujava = MuJava(calculator_mutants_dir())
+        mujava = MuJava(calculator_mutants_dir(), self.java)
         mutants_data = mujava.read_log(calculator_mutants_log())
 
         self.assertEqual('AOI_1', mutants_data[0].mid)
@@ -36,13 +39,13 @@ class TestMuJava(TestCase):
         self.assertEqual('a + b => a * b', mutants_data[2].transformation)
        
     def test_read_log_without_log_dir(self):
-        mujava = MuJava(calculator_mutants_dir())
+        mujava = MuJava(calculator_mutants_dir(), self.java)
         
         mutants = mujava.read_log()
         self.assertEquals(3, len(mutants))
 
     def test_not_found_log(self):
-        mujava = MuJava(calculator_mutants_dir())
+        mujava = MuJava(calculator_mutants_dir(), self.java)
 
         with self.assertRaises(SystemExit):
             mujava.read_log('wrong_path')

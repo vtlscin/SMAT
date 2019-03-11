@@ -63,20 +63,21 @@ class TestUtils(TestCase):
                         in classes)
 
     def test_get_java_files(self):
-        classes = get_java_files(os.path.join(calculator_project_dir(), 'src'))
+        classes = get_java_files(os.path.join(calculator_project_dir(), 'src',
+                                              'main', 'java'))
 
         self.assertEqual(6, len(classes))
-        self.assertTrue('src/main/java/br/ufal/ic/easy/Calculator.java'
+        self.assertTrue('br/ufal/ic/easy/Calculator.java'
                         in classes)
-        self.assertTrue('src/main/java/br/ufal/ic/easy/operations/Sum.java'
+        self.assertTrue('br/ufal/ic/easy/operations/Sum.java'
                         in classes)
-        self.assertTrue('src/main/java/br/ufal/ic/easy/operations/Div.java'
+        self.assertTrue('br/ufal/ic/easy/operations/Div.java'
                         in classes)
-        self.assertTrue(('src/main/java/br/ufal/ic/easy/operations/'
-                         + 'Operation.java') in classes)
-        self.assertTrue('src/main/java/br/ufal/ic/easy/operations/Sub.java'
+        self.assertTrue('br/ufal/ic/easy/operations/Operation.java'
                         in classes)
-        self.assertTrue('src/main/java/br/ufal/ic/easy/operations/Mul.java'
+        self.assertTrue('br/ufal/ic/easy/operations/Sub.java'
+                        in classes)
+        self.assertTrue('br/ufal/ic/easy/operations/Mul.java'
                         in classes)
 
     def test_generate_classpath(self):

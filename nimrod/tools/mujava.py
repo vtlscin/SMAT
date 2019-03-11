@@ -2,12 +2,14 @@ import os
 import sys
 
 from nimrod.mutant import Mutant
+from nimrod.utils import get_java_files
 
 
 class MuJava:
 
-    def __init__(self, mutants_dir):
+    def __init__(self, mutants_dir, java):
         self.mutants_dir = mutants_dir
+        self.java = java
 
     def read_log(self, log_dir=None):
         mutants = [] 
@@ -42,6 +44,13 @@ class MuJava:
             transformation=str(log_data[3]).strip(),
             dir=os.path.join(self.mutants_dir, log_data[0])
         )
+
+    def compile_mutants(self, classpath, mutants):
+        for mutant in mutants:
+            java_files = get_java_files(mutant.dir)
+            for java_file in java_files:
+                self.java.exec_javac(java_file, mutant.dir, None, None,
+                                     '-classpath', classpath)
 
     @staticmethod
     def _get_line_number(number, operator):
