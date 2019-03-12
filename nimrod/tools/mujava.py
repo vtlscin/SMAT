@@ -7,7 +7,7 @@ from nimrod.utils import get_java_files
 
 class MuJava:
 
-    def __init__(self, mutants_dir, java):
+    def __init__(self, java, mutants_dir):
         self.mutants_dir = mutants_dir
         self.java = java
 

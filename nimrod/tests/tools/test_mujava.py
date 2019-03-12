@@ -17,7 +17,7 @@ class TestMuJava(TestCase):
 
     def test_read_log_with_log_dir(self):
 
-        mujava = MuJava(calculator_mutants_dir(), self.java)
+        mujava = MuJava(self.java, calculator_mutants_dir())
         mutants_data = mujava.read_log(calculator_mutants_log())
 
         self.assertEqual('AOI_1', mutants_data[0].mid)
@@ -39,13 +39,13 @@ class TestMuJava(TestCase):
         self.assertEqual('a + b => a * b', mutants_data[2].transformation)
        
     def test_read_log_without_log_dir(self):
-        mujava = MuJava(calculator_mutants_dir(), self.java)
+        mujava = MuJava(self.java, calculator_mutants_dir())
         
         mutants = mujava.read_log()
         self.assertEquals(3, len(mutants))
 
     def test_not_found_log(self):
-        mujava = MuJava(calculator_mutants_dir(), self.java)
+        mujava = MuJava(self.java, calculator_mutants_dir())
 
         with self.assertRaises(SystemExit):
             mujava.read_log('wrong_path')

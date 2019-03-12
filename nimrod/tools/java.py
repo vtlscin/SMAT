@@ -68,8 +68,6 @@ class Java:
                                            timeout=timeout,
                                            stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            print('{0}: call process error with arguments {1}.'.format(
-                program, args), file=sys.stderr)
             raise e
         except subprocess.TimeoutExpired as e:
             print('{0}: timeout with arguments {1}.'.format(program, args)

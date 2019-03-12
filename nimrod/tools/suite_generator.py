@@ -5,6 +5,8 @@ import sys
 import shutil
 import subprocess
 
+from collections import namedtuple
+
 from nimrod.utils import get_java_files
 from nimrod.utils import generate_classpath
 from nimrod.tools.bin import JUNIT, HAMCREST
@@ -13,14 +15,18 @@ TIMEOUT = 5 * 60
 COMPILE_TIMEOUT = 20
 
 
+Suite = namedtuple('Suite', ['suite_name', 'suite_dir', 'suite_classes_dir',
+                             'test_classes'])
+
+
 class SuiteGenerator(ABC):
 
-    def __init__(self, java, classpath, tests_src, sut_class):
+    def __init__(self, java, classpath, tests_src, sut_class, params=None):
         self.java = java
         self.tests_src = tests_src
         self.classpath = classpath
         self.sut_class = sut_class
-        self.parameters = []
+        self.parameters = params if params else []
         self.suite_dir = None
         self.suite_classes_dir = None
         self.suite_name = self._set_suite_name()
@@ -90,5 +96,6 @@ class SuiteGenerator(ABC):
         self._exec_tool()
         self._compile()
 
-        return (self.suite_name, self.suite_dir, self.suite_classes_dir,
-                self._test_classes())
+        return Suite(suite_name=self.suite_name, suite_dir=self.suite_dir,
+                     suite_classes_dir=self.suite_classes_dir,
+                     test_classes=self._test_classes())

@@ -1,4 +1,4 @@
-import os
+import sys
 import time
 import subprocess
 
@@ -12,6 +12,8 @@ from nimrod.tools.bin import SAFIRA
 ImpactAnalysisResult = namedtuple('ImpactAnalysisResult', ['methods',
                                                            'constructors',
                                                            'run_time'])
+
+TIMEOUT = 60 * 1
 
 
 class ImpactAnalysis(ABC):
@@ -29,29 +31,29 @@ class Safira(ImpactAnalysis):
         self.classes_dir = classes_dir
         self.mutant_dir = mutant_dir
 
-    def run(self):
+    def run(self, params=None, timeout=TIMEOUT):
         classpath = generate_classpath([
             SAFIRA
         ])
 
         start = time.time()
         try:
-            output = self.java.simple_exec_java(
+            output = self.java.exec_java(
+                None, self.java.get_env(), timeout,
                 '-classpath', classpath,
-                'saferefactor.safira.SafiraStart', self.classes_dir,
-                self.mutant_dir)
-
+                'saferefactor.safira.SafiraStart',
+                *tuple(params if params else []),
+                self.classes_dir, self.mutant_dir
+            )
             return ImpactAnalysisResult(
                 *self._extract_results(output.decode('unicode_escape')),
                 time.time() - start
             )
-        except subprocess.CalledProcessError:
-            print('# ERROR: [SAFIRA] called process error')
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             elapsed_time = time.time() - start
             print("# ERROR: [SAFIRA] execution timed out: {0} seconds".format(
-                elapsed_time
-            ))
+                elapsed_time), file=sys.stderr)
+            raise e
 
     @staticmethod
     def _extract_results(output):

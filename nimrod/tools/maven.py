@@ -1,9 +1,15 @@
 import os
+import re
 import sys
 import subprocess
 
+from collections import namedtuple
+
 
 TIMEOUT = 10 * 60
+
+
+MavenResults = namedtuple('MavenResults', ['source_files', 'classes_dir'])
 
 
 class Maven:
@@ -64,6 +70,22 @@ class Maven:
             print('MAVEN: not found.', file=sys.stderr)
             raise e
 
-    def compile(self, project_dir, timeout):
+    def clean(self, project_dir, timeout):
         return self._exec_mvn(project_dir, self.java.get_env(), timeout,
-                              'compile')
+                              'clean').decode('unicode_escape')
+
+    def compile(self, project_dir, timeout):
+        self.clean(project_dir, TIMEOUT)
+
+        return self.extract_results(
+            self._exec_mvn(project_dir, self.java.get_env(), timeout,
+                           'compile').decode('unicode_escape')
+        )
+
+    @staticmethod
+    def extract_results(output):
+        output = re.findall('Compiling [0-9]* source files? to .*\n', output)
+        if output:
+            output = output[0].replace('\n', '').split()
+            return MavenResults(int(output[1]), output[-1])
+        return None

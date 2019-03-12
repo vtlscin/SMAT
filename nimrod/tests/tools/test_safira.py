@@ -1,4 +1,4 @@
-import os
+import subprocess
 
 from unittest import TestCase
 
@@ -36,3 +36,10 @@ class TestSafira(TestCase):
                         results.constructors)
         self.assertTrue('br.ufal.ic.easy.operations.Sum()' in
                         results.constructors)
+
+    def test_run_safira_timeout(self):
+        safira = Safira(self.java, calculator_target_dir(),
+                        calculator_src_aor_1())
+
+        with self.assertRaises(subprocess.TimeoutExpired):
+            safira.run(timeout=0)

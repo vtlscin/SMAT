@@ -1,4 +1,5 @@
 import re
+import sys
 import time
 import subprocess
 
@@ -11,7 +12,8 @@ TIMEOUT = 60 * 3
 
 
 JUnitResult = namedtuple('JUnitResult', ['ok_tests', 'fail_tests', 
-                                         'fail_test_set', 'run_time'])
+                                         'fail_test_set', 'run_time',
+                                         'executions'])
 
 
 class JUnit:
@@ -61,20 +63,19 @@ class JUnit:
                                          timeout, *params)
             return JUnitResult(
                 *JUnit._extract_results_ok(output.decode('unicode_escape')),
-                time.time() - start
+                time.time() - start, 0
             )
         except subprocess.CalledProcessError as e:
             return JUnitResult(
                 *JUnit._extract_results(e.output.decode('unicode_escape')),
-                time.time() - start
+                time.time() - start, 0
             )
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             elapsed_time = time.time() - start
             print("# ERROR: Run JUnit tests timed out. {0} seconds".format(
                 elapsed_time
-            ))
-
-        return JUnitResult(0, 0, set(), elapsed_time)
+            ), file=sys.stderr)
+            raise e
 
     @staticmethod
     def _extract_results_ok(output):
@@ -113,4 +114,24 @@ class JUnit:
                 print("*** ERROR: Error in regex of junit output.")
 
         return tests_fail
+
+    def run_with_mutant(self, suite, sut_class, mutant):
+        ok_tests = 0
+        fail_tests = 0
+        fail_test_set = set()
+        run_time = 0
+        executions = 0
+
+        for test_class in suite.test_classes:
+            result = self.exec_with_mutant(suite.suite_dir,
+                                           suite.suite_classes_dir, sut_class,
+                                           test_class, mutant)
+            ok_tests += result.ok_tests
+            fail_tests += result.fail_tests
+            fail_test_set = fail_test_set.union(result.fail_test_set)
+            run_time += run_time
+            executions += result.executions
+
+        return JUnitResult(ok_tests, fail_tests, fail_test_set, run_time,
+                           executions)
 

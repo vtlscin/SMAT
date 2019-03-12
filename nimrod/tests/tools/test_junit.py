@@ -2,6 +2,7 @@ from unittest import TestCase
 
 import os
 import shutil
+import subprocess
 
 from nimrod.tests.utils import get_config
 from nimrod.tests.utils import calculator_project_dir
@@ -47,10 +48,17 @@ class TestJUnit(TestCase):
         self.assertTrue(len(output.fail_test_set) == 0)
         self.assertTrue(output.run_time > 0)
 
+    def test_run_junit_timeout(self):
+        junit = JUnit(self.java, self.classpath)
+
+        with self.assertRaises(subprocess.TimeoutExpired):
+            junit.exec(self.suite_dir, self.suite_classes_dir,
+                       self.sut_class, self.suite_classes[0], 0)
+
     def test_run_junit_with_mutant(self):
         junit = JUnit(self.java, self.classpath)
 
-        mujava = MuJava(calculator_mutants_dir(), self.java)
+        mujava = MuJava(self.java, calculator_mutants_dir())
         mutants = mujava.read_log()
         mujava.compile_mutants(self.classpath, mutants)
 

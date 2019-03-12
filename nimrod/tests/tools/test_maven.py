@@ -76,6 +76,14 @@ class TestMaven(TestCase):
 
         calculator_clean_project()
 
+    def test_extract_results(self):
+        output = ('0328efjhdaso [INFO] Compiling 6 source files to ' +
+                  '/a/b/c/target/classes\n[INFO] 0asdjhaskdjf Compiling')
+        results = Maven.extract_results(output)
+
+        self.assertEquals(6, results.source_files)
+        self.assertEquals('/a/b/c/target/classes', results.classes_dir)
+
     @staticmethod
     def _clear_environment():
         if 'M2_HOME' in os.environ:
