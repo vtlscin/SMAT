@@ -3,6 +3,7 @@ import os
 from nimrod.tools.suite_generator import SuiteGenerator
 from nimrod.utils import get_class_files, get_java_files
 from nimrod.tools.bin import EVOSUITE, EVOSUITE_RUNTIME
+from nimrod.tools.suite_generator import Suite
 
 
 class Evosuite(SuiteGenerator):
@@ -49,3 +50,27 @@ class Evosuite(SuiteGenerator):
                 ordered_files.append(file)
 
         return ordered_files
+
+    def _exec_differential(self, mutants_classpath):
+        params = [
+            '-jar', EVOSUITE,
+            '-regressionSuite',
+            '-projectCP', self.classpath,
+            '-Dregressioncp=' + mutants_classpath,
+            '-class', self.sut_class,
+            '-DOUTPUT_DIR=' + self.suite_dir
+        ]
+
+        params += self.parameters
+
+        return self._exec(*tuple(params))
+
+    def generate_differential(self, mutant_classpath, make_dir=True):
+        if make_dir:
+            self._make_src_dir()
+        self._exec_differential(mutant_classpath)
+        self._compile()
+
+        return Suite(suite_name=self.suite_name, suite_dir=self.suite_dir,
+                     suite_classes_dir=self.suite_classes_dir,
+                     test_classes=self._test_classes())
