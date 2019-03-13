@@ -33,7 +33,6 @@ class Nimrod:
         output_dir = self.check_output_dir(output_dir if output_dir
                                            else os.path.join(project_dir,
                                                              OUTPUT_DIR))
-
         for mutant in self.get_mutants(classes_dir, mutants_dir):
             if self.check_mutant(mutant, sut_class):
                 tests_src = os.path.join(output_dir, 'suites', mutant.mid)
@@ -52,17 +51,19 @@ class Nimrod:
                     results[mutant.mid] = self.create_nimrod_result(test_result,
                                                                     False)
 
-                if results[mutant.mid].maybe_equivalent:
-                    print('{0} maybe equivalent, executions: {1}.'
-                          .format(mutant.mid,
-                                  results[mutant.mid].coverage.executions))
-                else:
-                    print('{0} is not equivalent. {1}'
-                          .format(mutant.mid,
-                                  'Killed by differential test.' if
-                                  results[mutant.mid].differential else ''))
+                self.print_result(mutant, results[mutant.mid])
 
         return results
+
+    @staticmethod
+    def print_result( mutant, result):
+        if result.maybe_equivalent:
+            print('{0} maybe equivalent, executions: {1}.'
+                  .format(mutant.mid, result.coverage.executions))
+        else:
+            print('{0} is not equivalent. {1}'
+                  .format(mutant.mid, 'Killed by differential test.' if
+                          result.differential else ''))
 
     @staticmethod
     def check_mutant(mutant, sut_class):
