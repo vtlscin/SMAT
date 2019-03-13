@@ -138,10 +138,10 @@ class JUnit:
 
             cov = self.run_coverage(suite.suite_dir, sut_class,
                                     mutant.line_number)
-
-            call_points = call_points.union(cov.call_points)
-            test_cases = test_cases.union(cov.test_cases)
-            executions += cov.executions
+            if cov:
+                call_points = call_points.union(cov.call_points)
+                test_cases = test_cases.union(cov.test_cases)
+                executions += cov.executions
 
         return JUnitResult(ok_tests, fail_tests, fail_test_set, run_time,
                            Coverage(call_points, test_cases, executions))

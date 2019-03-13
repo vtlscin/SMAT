@@ -22,7 +22,8 @@ class TestNimrod(TestCase):
         nimrod = Nimrod(self.java, self.maven)
         results = nimrod.run(calculator_project_dir(), calculator_mutants_dir(),
                              'br.ufal.ic.easy.operations.Sum',
-                             randoop_params=['--time-limit=1'])
+                             randoop_params=['--time-limit=1'],
+                             evosuite_params=['-Dsearch_budget=1'])
 
         self.assertEqual(True, results['AOI_1'].maybe_equivalent)
         self.assertEqual(False, results['AOI_1'].not_equivalent)
@@ -51,6 +52,7 @@ class TestNimrod(TestCase):
         results = nimrod.run(calculator_project_dir(), calculator_mutants_dir(),
                              'br.ufal.ic.easy.operations.Sum',
                              randoop_params=['--time-limit=1'],
+                             evosuite_params=['-Dsearch_budget=1'],
                              output_dir=output_dir)
 
         shutil.rmtree(output_dir)
