@@ -33,6 +33,7 @@ class Nimrod:
         output_dir = self.check_output_dir(output_dir if output_dir
                                            else os.path.join(project_dir,
                                                              OUTPUT_DIR))
+
         for mutant in self.get_mutants(classes_dir, mutants_dir):
             if self.check_mutant(mutant, sut_class):
                 tests_src = os.path.join(output_dir, 'suites', mutant.mid)
@@ -52,6 +53,7 @@ class Nimrod:
                                                                     False)
 
                 self.print_result(mutant, results[mutant.mid])
+                self.write_to_csv(results[mutant.mid], mutant, output_dir)
 
         return results
 
@@ -135,3 +137,33 @@ class Nimrod:
         return NimrodResult(test_result.fail_tests == 0,
                             test_result.fail_tests > 0, test_result.coverage,
                             differential)
+
+    @staticmethod
+    def write_to_csv(result, mutant, output_dir='.', filename='nimrod.csv',
+                     exclude_if_exists=False):
+        file = os.path.join(output_dir, filename)
+
+        if exclude_if_exists:
+            if os.path.exists(file):
+                os.remove(file)
+
+        if not os.path.exists(file):
+            with open(file, 'w') as f:
+                f.write('mutant,maybe_equivalent,not_equivalent,differential,' +
+                        'call_points,test_cases,executions\n')
+
+        if result and mutant:
+            with open(file, 'a') as f:
+                f.write('{0},{1},{2},{3},{4},{5},{6}\n'.format(
+                    mutant.mid,
+                    'x' if result.maybe_equivalent else '',
+                    'x' if result.not_equivalent else '',
+                    'x' if result.differential else '',
+                    len(result.coverage.call_points),
+                    len(result.coverage.test_cases),
+                    result.coverage.executions
+                ))
+                f.close()
+
+
+
