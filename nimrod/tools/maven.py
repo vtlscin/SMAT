@@ -76,8 +76,10 @@ class Maven:
 
     def compile(self, project_dir, timeout=TIMEOUT, clean=False):
         if clean:
+            print("Clean project with maven...")
             self.clean(project_dir, TIMEOUT)
 
+        print("Compiling project with maven...")
         return self.extract_results(
             self._exec_mvn(project_dir, self.java.get_env(), timeout,
                            'compile').decode('unicode_escape')

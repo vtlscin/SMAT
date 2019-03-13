@@ -6,6 +6,7 @@ from nimrod.tools.mujava import MuJava
 from nimrod.tools.safira import Safira
 from nimrod.tools.junit import JUnit
 from nimrod.tools.evosuite import Evosuite
+from nimrod.utils import package_to_dir
 
 from collections import namedtuple
 
@@ -32,10 +33,9 @@ class Nimrod:
         output_dir = self.check_output_dir(output_dir if output_dir
                                            else os.path.join(project_dir,
                                                              OUTPUT_DIR))
-        mutants = MuJava(self.java, mutants_dir).read_log()
 
-        for mutant in mutants:
-            if os.path.exists(mutant.dir):
+        for mutant in self.get_mutants(classes_dir, mutants_dir):
+            if self.check_mutant(mutant, sut_class):
                 tests_src = os.path.join(output_dir, 'suites', mutant.mid)
 
                 test_result = self.try_evosuite(classes_dir, tests_src,
@@ -61,10 +61,29 @@ class Nimrod:
                           .format(mutant.mid,
                                   'Killed by differential test.' if
                                   results[mutant.mid].differential else ''))
-            else:
-                print('{0}: directory not found.'.format(mutant.mid))
 
         return results
+
+    @staticmethod
+    def check_mutant(mutant, sut_class):
+        if os.path.exists(mutant.dir):
+            class_file = os.path.join(mutant.dir, package_to_dir(sut_class) +
+                                      '.class')
+            if not os.path.exists(class_file):
+                print("{0}: .class not found.".format(mutant.mid))
+                return False
+            else:
+                return True
+        else:
+            print('{0}: directory not found.'.format(mutant.mid))
+            return False
+
+    def get_mutants(self, classpath, mutants_dir):
+        mujava = MuJava(self.java, mutants_dir)
+        mutants = mujava.read_log()
+        mujava.compile_mutants(classpath, mutants)
+
+        return mutants
 
     def try_evosuite(self, classes_dir, tests_src, sut_class, mutant,
                      evosuite_params=None):
