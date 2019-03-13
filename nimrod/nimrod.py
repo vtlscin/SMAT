@@ -35,22 +35,34 @@ class Nimrod:
         mutants = MuJava(self.java, mutants_dir).read_log()
 
         for mutant in mutants:
-            tests_src = os.path.join(output_dir, 'suites', mutant.mid)
+            if os.path.exists(mutant.dir):
+                tests_src = os.path.join(output_dir, 'suites', mutant.mid)
 
-            test_result = self.try_evosuite(classes_dir, tests_src, sut_class,
-                                            mutant, evosuite_params)
-            if test_result.fail_tests > 0:
-                results[mutant.mid] = NimrodResult(test_result.fail_tests == 0,
-                                                   test_result.fail_tests > 0,
-                                                   test_result.coverage, True)
+                test_result = self.try_evosuite(classes_dir, tests_src,
+                                                sut_class, mutant,
+                                                evosuite_params)
+                if test_result.fail_tests > 0:
+                    results[mutant.mid] = self.create_nimrod_result(test_result,
+                                                                    True)
+                else:
+                    test_result = self.try_randoop(classes_dir, tests_src,
+                                                   sut_class, mutant,
+                                                   randoop_params)
+
+                    results[mutant.mid] = self.create_nimrod_result(test_result,
+                                                                    False)
+
+                if results[mutant.mid].maybe_equivalent:
+                    print('{0} maybe equivalent, executions: {1}.'
+                          .format(mutant.mid,
+                                  results[mutant.mid].coverage.executions))
+                else:
+                    print('{0} is not equivalent. {1}'
+                          .format(mutant.mid,
+                                  'Killed by differential test.' if
+                                  results[mutant.mid].differential else ''))
             else:
-                test_result = self.try_randoop(classes_dir, tests_src,
-                                               sut_class, mutant,
-                                               randoop_params)
-
-                results[mutant.mid] = NimrodResult(test_result.fail_tests == 0,
-                                                   test_result.fail_tests > 0,
-                                                   test_result.coverage, False)
+                print('{0}: directory not found.'.format(mutant.mid))
 
         return results
 
@@ -97,3 +109,9 @@ class Nimrod:
         os.makedirs(output_dir)
 
         return output_dir
+
+    @staticmethod
+    def create_nimrod_result(test_result, differential):
+        return NimrodResult(test_result.fail_tests == 0,
+                            test_result.fail_tests > 0, test_result.coverage,
+                            differential)
