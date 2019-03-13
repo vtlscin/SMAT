@@ -9,7 +9,6 @@ from nimrod.tools.junit import JUnit
 from collections import namedtuple
 
 
-COMPILE_TIMEOUT = 60 * 10
 OUTPUT_DIR = 'nimrod_output'
 
 
@@ -25,9 +24,10 @@ class Nimrod:
 
     def run(self, project_dir, mutants_dir, sut_class, randoop_params=None,
             output_dir=None):
-        _, classes_dir = self.maven.compile(project_dir,
-                                            timeout=COMPILE_TIMEOUT)
+
         results = {}
+
+        _, classes_dir = self.maven.compile(project_dir, clean=True)
         output_dir = self.check_output_dir(output_dir if output_dir
                                            else os.path.join(project_dir,
                                                              OUTPUT_DIR))
