@@ -40,13 +40,30 @@ class SuiteGenerator(ABC):
         self._create_dirs(self.suite_classes_dir)
 
         classpath = generate_classpath([self.classpath, self.suite_dir, JUNIT,
-                                        HAMCREST])
+                                        HAMCREST, self.suite_classes_dir]
+                                       + self._extra_classpath())
 
-        for java_file in sorted(get_java_files(self.suite_dir)):
+        for java_file in self._get_java_files():
             java_file = os.path.join(self.suite_dir, java_file)
-            self.java.exec_javac(java_file, self.suite_dir, self.java.get_env(),
-                                 COMPILE_TIMEOUT, '-classpath', classpath,
-                                 '-d', self.suite_classes_dir)
+            try:
+                self.java.exec_javac(java_file, self._get_suite_dir(),
+                                     self.java.get_env(), COMPILE_TIMEOUT,
+                                     '-classpath', classpath,
+                                     '-d', self.suite_classes_dir)
+            except subprocess.CalledProcessError as e:
+                print('[ERROR] Compiling {0} tests: {1}'.format(
+                    self._get_tool_name(), e.output.decode('unicode_escape')),
+                    file=sys.stderr)
+
+    def _get_java_files(self):
+        return sorted(get_java_files(self.suite_dir))
+
+    @staticmethod
+    def _extra_classpath():
+        return []
+
+    def _get_suite_dir(self):
+        return self.suite_dir
 
     @abstractmethod
     def _test_classes(self):
@@ -63,7 +80,7 @@ class SuiteGenerator(ABC):
 
     def _exec(self, *command):
         try:
-            return self.java.exec_java(self.tests_src, self.java.get_env(),
+            return self.java.exec_java(self.suite_dir, self.java.get_env(),
                                        self._get_timeout(), *command)
         except subprocess.CalledProcessError as e:
             print('{0}: call process error with command {1}: {2}'.format(
