@@ -49,7 +49,7 @@ class TestRandoop(TestCase):
         self.assertTrue(len(get_class_files(suite_classes_dir)) > 1)
         self.assertEquals(1, len(suite_classes))
 
-        shutil.rmtree(tests_src)
+        # shutil.rmtree(tests_src)
 
     def test_generate_with_impact_analysis(self):
         tests_src = os.path.join(calculator_project_dir(), 'randoop')

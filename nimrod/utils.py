@@ -23,5 +23,12 @@ def get_files(path, root='', ext=None):
 
 
 def generate_classpath(paths):
-
     return os.pathsep.join([p for p in paths if p is not None and len(p) > 0])
+
+
+def package_to_dir(package):
+    return package.replace('.', os.sep)
+
+
+def dir_to_package(directory):
+    return directory.replace(os.sep, '.')

@@ -26,15 +26,21 @@ class TestNimrod(TestCase):
 
         self.assertEqual(True, results['AOI_1'].maybe_equivalent)
         self.assertEqual(False, results['AOI_1'].not_equivalent)
-        self.assertEqual(0, results['AOI_1'].executions)
+        self.assertTrue(len(results['AOI_1'].coverage.call_points) > 0)
+        self.assertTrue(len(results['AOI_1'].coverage.test_cases) > 0)
+        self.assertTrue(results['AOI_1'].coverage.executions > 0)
 
         self.assertEqual(False, results['AOR_1'].maybe_equivalent)
         self.assertEqual(True, results['AOR_1'].not_equivalent)
-        self.assertEqual(0, results['AOR_1'].executions)
+        self.assertTrue(len(results['AOR_1'].coverage.call_points) > 0)
+        self.assertTrue(len(results['AOR_1'].coverage.test_cases) > 0)
+        self.assertTrue(results['AOR_1'].coverage.executions > 0)
 
         self.assertEqual(False, results['AOR_2'].maybe_equivalent)
         self.assertEqual(True, results['AOR_2'].not_equivalent)
-        self.assertEqual(0, results['AOR_2'].executions)
+        self.assertTrue(len(results['AOR_2'].coverage.call_points) > 0)
+        self.assertTrue(len(results['AOR_2'].coverage.test_cases) > 0)
+        self.assertTrue(results['AOR_2'].coverage.executions > 0)
 
         shutil.rmtree(os.path.join(calculator_project_dir(), 'nimrod_output'))
 

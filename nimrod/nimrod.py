@@ -13,7 +13,7 @@ OUTPUT_DIR = 'nimrod_output'
 
 
 NimrodResult = namedtuple('NimrodResult', ['maybe_equivalent', 'not_equivalent',
-                                           'executions'])
+                                           'coverage'])
 
 
 class Nimrod:
@@ -57,7 +57,7 @@ class Nimrod:
 
             results[mutant.mid] = NimrodResult(test_result.fail_tests == 0,
                                                test_result.fail_tests > 0,
-                                               test_result.executions)
+                                               test_result.coverage)
 
         return results
 

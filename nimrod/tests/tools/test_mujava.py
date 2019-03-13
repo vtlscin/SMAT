@@ -22,19 +22,19 @@ class TestMuJava(TestCase):
 
         self.assertEqual('AOI_1', mutants_data[0].mid)
         self.assertEqual('AOI', mutants_data[0].operator)
-        self.assertEqual(6, mutants_data[0].line_number)
+        self.assertEqual(18, mutants_data[0].line_number)
         self.assertEqual('int_execute(int,int)', mutants_data[0].method)
         self.assertEqual('a + b => a + b++', mutants_data[0].transformation)
         
         self.assertEqual('AOR_1', mutants_data[1].mid)
         self.assertEqual('AOR', mutants_data[1].operator)
-        self.assertEqual(6, mutants_data[1].line_number)
+        self.assertEqual(18, mutants_data[1].line_number)
         self.assertEqual('int_execute(int,int)', mutants_data[1].method)
         self.assertEqual('a + b => a - b', mutants_data[1].transformation)
        
         self.assertEqual('AOR_2', mutants_data[2].mid)
         self.assertEqual('AOR', mutants_data[2].operator)
-        self.assertEqual(6, mutants_data[2].line_number)
+        self.assertEqual(18, mutants_data[2].line_number)
         self.assertEqual('int_execute(int,int)', mutants_data[2].method)
         self.assertEqual('a + b => a * b', mutants_data[2].transformation)
        
