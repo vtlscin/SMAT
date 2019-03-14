@@ -15,7 +15,8 @@ OUTPUT_DIR = 'nimrod_output'
 
 
 NimrodResult = namedtuple('NimrodResult', ['maybe_equivalent', 'not_equivalent',
-                                           'coverage', 'differential'])
+                                           'coverage', 'differential',
+                                           'timeout'])
 
 
 class Nimrod:
@@ -41,7 +42,7 @@ class Nimrod:
                 test_result = self.try_evosuite(classes_dir, tests_src,
                                                 sut_class, mutant,
                                                 evosuite_params)
-                if test_result.fail_tests > 0:
+                if test_result.fail_tests > 0 or test_result.timeout:
                     results[mutant.mid] = self.create_nimrod_result(test_result,
                                                                     True)
                 else:
@@ -134,9 +135,10 @@ class Nimrod:
 
     @staticmethod
     def create_nimrod_result(test_result, differential):
-        return NimrodResult(test_result.fail_tests == 0,
-                            test_result.fail_tests > 0, test_result.coverage,
-                            differential)
+        return NimrodResult(
+            test_result.fail_tests == 0 and not test_result.timeout,
+            test_result.fail_tests > 0 or test_result.timeout,
+            test_result.coverage, differential, test_result.timeout)
 
     @staticmethod
     def write_to_csv(result, mutant, output_dir='.', filename='nimrod.csv',
@@ -150,15 +152,16 @@ class Nimrod:
         if not os.path.exists(file):
             with open(file, 'w') as f:
                 f.write('mutant,maybe_equivalent,not_equivalent,differential,' +
-                        'call_points,test_cases,executions\n')
+                        'timeout,call_points,test_cases,executions\n')
 
         if result and mutant:
             with open(file, 'a') as f:
-                f.write('{0},{1},{2},{3},{4},{5},{6}\n'.format(
+                f.write('{0},{1},{2},{3},{4},{5},{6},{7}\n'.format(
                     mutant.mid,
                     'x' if result.maybe_equivalent else '',
                     'x' if result.not_equivalent else '',
                     'x' if result.differential else '',
+                    'x' if result.timeout else '',
                     len(result.coverage.call_points),
                     len(result.coverage.test_cases),
                     result.coverage.executions
