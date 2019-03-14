@@ -4,7 +4,7 @@ import shutil
 from nimrod.tools.randoop import Randoop
 from nimrod.tools.mujava import MuJava
 from nimrod.tools.safira import Safira
-from nimrod.tools.junit import JUnit
+from nimrod.tools.junit import JUnit, JUnitResult, Coverage
 from nimrod.tools.evosuite import Evosuite
 from nimrod.utils import package_to_dir
 
@@ -26,7 +26,7 @@ class Nimrod:
         self.maven = maven
 
     def run(self, project_dir, mutants_dir, sut_class, randoop_params=None,
-            evosuite_params=None, output_dir=None):
+            evosuite_diff_params=None, evosuite_params=None, output_dir=None):
 
         results = {}
 
@@ -39,19 +39,31 @@ class Nimrod:
             if self.check_mutant(mutant, sut_class):
                 tests_src = os.path.join(output_dir, 'suites', mutant.mid)
 
-                test_result = self.try_evosuite(classes_dir, tests_src,
-                                                sut_class, mutant,
-                                                evosuite_params)
+                test_result = self.try_evosuite_diff(classes_dir, tests_src,
+                                                     sut_class, mutant,
+                                                     evosuite_diff_params)
                 if test_result.fail_tests > 0 or test_result.timeout:
                     results[mutant.mid] = self.create_nimrod_result(test_result,
                                                                     True)
                 else:
-                    test_result = self.try_randoop(classes_dir, tests_src,
-                                                   sut_class, mutant,
-                                                   randoop_params)
-
-                    results[mutant.mid] = self.create_nimrod_result(test_result,
-                                                                    False)
+                    evo_test_result = self.try_evosuite(classes_dir, tests_src,
+                                                        sut_class, mutant,
+                                                        evosuite_params)
+                    if evo_test_result and (evo_test_result.fail_tests > 0
+                                            or evo_test_result.timeout):
+                        results[mutant.mid] = self.create_nimrod_result(
+                            evo_test_result, False)
+                    else:
+                        ran_test_result = self.try_randoop(
+                            classes_dir, tests_src, sut_class, mutant,
+                            randoop_params)
+                        if ran_test_result and (ran_test_result.fail_tests > 0
+                                                or ran_test_result.timeout):
+                            results[mutant.mid] = self.create_nimrod_result(
+                                ran_test_result, False)
+                        else:
+                            results[mutant.mid] = self.sum_nimrod_result(
+                                ran_test_result, evo_test_result, False)
 
                 self.print_result(mutant, results[mutant.mid])
                 self.write_to_csv(results[mutant.mid], mutant, output_dir)
@@ -89,6 +101,22 @@ class Nimrod:
 
         return mutants
 
+    def try_evosuite_diff(self, classes_dir, tests_src, sut_class, mutant,
+                     evosuite_diff_params=None):
+        junit = JUnit(java=self.java, classpath=classes_dir)
+
+        evosuite = Evosuite(
+            java=self.java,
+            classpath=classes_dir,
+            tests_src=tests_src,
+            sut_class=sut_class,
+            params=evosuite_diff_params
+        )
+
+        suite = evosuite.generate_differential(mutant.dir)
+
+        return junit.run_with_mutant(suite, sut_class, mutant)
+
     def try_evosuite(self, classes_dir, tests_src, sut_class, mutant,
                      evosuite_params=None):
         junit = JUnit(java=self.java, classpath=classes_dir)
@@ -101,9 +129,10 @@ class Nimrod:
             params=evosuite_params
         )
 
-        suite = evosuite.generate_differential(mutant.dir)
+        suite = evosuite.generate()
 
-        return junit.run_with_mutant(suite, sut_class, mutant)
+        return (junit.run_with_mutant(suite, sut_class, mutant)
+                if suite else None)
 
     def try_randoop(self, classes_dir, tests_src, sut_class, mutant,
                     randoop_params=None):
@@ -122,7 +151,8 @@ class Nimrod:
 
         suite = randoop.generate_with_impact_analysis(safira)
 
-        return junit.run_with_mutant(suite, sut_class, mutant)
+        return (junit.run_with_mutant(suite, sut_class, mutant)
+                if suite else None)
 
     @staticmethod
     def check_output_dir(output_dir):
@@ -139,6 +169,32 @@ class Nimrod:
             test_result.fail_tests == 0 and not test_result.timeout,
             test_result.fail_tests > 0 or test_result.timeout,
             test_result.coverage, differential, test_result.timeout)
+
+    @staticmethod
+    def sum_nimrod_result(ran, evo, differential):
+        if ran and evo:
+            return Nimrod.create_nimrod_result(
+                JUnitResult(
+                    ok_tests=ran.ok_tests + evo.ok_tests,
+                    fail_tests=ran.fail_tests + evo.fail_tests,
+                    fail_test_set=ran.fail_test_set.union(evo.fail_test_set),
+                    run_time=ran.run_time + evo.run_time,
+                    coverage=Coverage(
+                        call_points=(ran.coverage.call_points
+                                     .union(evo.coverage.call_points)),
+                        test_cases=(ran.coverage.test_cases
+                                    .union(evo.coverage.test_cases)),
+                        executions=(ran.coverage.executions
+                                    + evo.coverage.executions),
+                    ),
+                    timeout=ran.timeout or evo.timeout
+                ),
+                differential
+            )
+        elif ran:
+            return Nimrod.create_nimrod_result(ran, differential)
+        elif evo:
+            return Nimrod.create_nimrod_result(evo, differential)
 
     @staticmethod
     def write_to_csv(result, mutant, output_dir='.', filename='nimrod.csv',
