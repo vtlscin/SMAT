@@ -16,10 +16,12 @@ def main():
     maven = Maven(java, get_config()['maven_home'])
 
     nimrod = Nimrod(java, maven)
-    results = nimrod.run(PROJECT_DIR, MUTANTS_DIR,
-                         'tr.Triangle',
-                         randoop_params=['--time-limit=60'],
-                         evosuite_params=['-Dsearch_budget=60'])
+    nimrod.run(
+        PROJECT_DIR, MUTANTS_DIR,
+        'tr.Triangle',
+        randoop_params=['--time-limit=120'],
+        evosuite_params=['-Dsearch_budget=60']
+    )
 
 
 if __name__ == "__main__":

@@ -6,8 +6,8 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>br.ufal.ic.easy</groupId>
-    <artifactId>minimal</artifactId>
+    <groupId>tr</groupId>
+    <artifactId>triangle</artifactId>
     <version>0.0.0</version>
 
     <dependencies>
