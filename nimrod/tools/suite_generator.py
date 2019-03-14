@@ -83,13 +83,11 @@ class SuiteGenerator(ABC):
             return self.java.exec_java(self.suite_dir, self.java.get_env(),
                                        self._get_timeout(), *command)
         except subprocess.CalledProcessError as e:
-            print('{0}: call process error with command {1}: {2}'.format(
+            print('[ERROR] {0} call process error with command {1}: {2}'.format(
                 self._get_tool_name(), command, e.output), file=sys.stderr)
             raise e
-        except subprocess.TimeoutExpired as e:
-            print('{0}: timeout with command {1}.'.format(
-                self._get_tool_name(), command), file=sys.stderr)
-            raise e
+        except subprocess.TimeoutExpired:
+            print('[WARNING] {0} timeout.')
 
     def _make_src_dir(self):
         self.suite_dir = os.path.join(self.tests_src, self.suite_name)

@@ -1,6 +1,5 @@
 import os
 import re
-import sys
 import time
 import subprocess
 
@@ -160,6 +159,11 @@ class JUnit:
                     call_points = call_points.union(cov.call_points)
                     test_cases = test_cases.union(cov.test_cases)
                     executions += cov.executions
+            else:
+                r = self.exec(suite.suite_dir, suite.suite_classes_dir,
+                              sut_class, test_class)
+                if r.timeout:
+                    return None
 
         return JUnitResult(ok_tests, fail_tests, fail_test_set, run_time,
                            Coverage(call_points, test_cases, executions),

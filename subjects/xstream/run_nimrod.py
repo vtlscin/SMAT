@@ -19,8 +19,12 @@ def main():
     nimrod.run(
         PROJECT_DIR, MUTANTS_DIR,
         'xcom.thoughtworks.xstream.io.xml.XmlFriendlyNameCoder',
-        randoop_params=['--time-limit=120'],
-        evosuite_params=['-Dsearch_budget=60']
+        randoop_params=['--time-limit=60', '--flaky-test-behavior=DISCARD',
+                        '--usethreads=true', '--call_timeout=1000'],
+        evosuite_params=['-Dsearch_budget=60',
+                         '-Dminimize=false',
+                         '-Dcriterion=STATEMENT:LINE:BRANCH:WEAKMUTATION'],
+        evosuite_diff_params=['-Dsearch_budget=60']
     )
 
 

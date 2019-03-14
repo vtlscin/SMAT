@@ -19,8 +19,9 @@ def main():
     nimrod.run(
         PROJECT_DIR, MUTANTS_DIR,
         'tr.Triangle',
-        randoop_params=['--time-limit=120'],
-        evosuite_params=['-Dsearch_budget=60']
+        randoop_params=['--time-limit=60'],
+        evosuite_params=['-Dsearch_budget=60'],
+        evosuite_diff_params=['-Dsearch_budget=60']
     )
 
 
