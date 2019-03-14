@@ -48,14 +48,7 @@ class MuJava:
     def compile_mutants(self, classpath, mutants):
         print("Compiling mutants...")
         for mutant in mutants:
-            if os.path.exists(mutant.dir):
-                java_files = get_java_files(mutant.dir)
-                for java_file in java_files:
-                    class_file = os.path.join(
-                        mutant.dir, java_file.replace('.java', '.class'))
-                    if not os.path.exists(class_file):
-                        self.java.exec_javac(java_file, mutant.dir, None, None,
-                                             '-classpath', classpath)
+            self.java.compile_all(classpath, mutant.dir)
 
     @staticmethod
     def _get_line_number(number, operator):

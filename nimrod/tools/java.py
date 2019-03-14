@@ -2,6 +2,8 @@ import os
 import sys
 import subprocess
 
+from nimrod.utils import get_java_files
+
 TIMEOUT = 10 * 60
 
 
@@ -70,11 +72,9 @@ class Java:
         except subprocess.CalledProcessError as e:
             raise e
         except subprocess.TimeoutExpired as e:
-            print('{0}: timeout with arguments {1}.'.format(program, args)
-                  , file=sys.stderr)
             raise e
         except FileNotFoundError as e:
-            print('{0}: not found.'.format(program), file=sys.stderr)
+            print('[ERROR] {0}: not found.'.format(program), file=sys.stderr)
             raise e
 
     def get_env(self, variables=None):
@@ -88,3 +88,13 @@ class Java:
                 env[key] = variables[key]
 
         return env
+
+    def compile_all(self, classpath, directory):
+        if os.path.exists(directory):
+            java_files = get_java_files(directory)
+            for java_file in java_files:
+                class_file = os.path.join(directory,
+                                          java_file.replace('.java', '.class'))
+                if not os.path.exists(class_file):
+                    self.exec_javac(java_file, directory, None, None,
+                                    '-classpath', classpath)
