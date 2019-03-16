@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 
 from nimrod.tools.randoop import Randoop
 from nimrod.tools.mujava import MuJava
@@ -16,7 +17,7 @@ OUTPUT_DIR = 'nimrod_output'
 
 NimrodResult = namedtuple('NimrodResult', ['maybe_equivalent', 'not_equivalent',
                                            'coverage', 'differential',
-                                           'timeout'])
+                                           'timeout', 'test_tool'])
 
 
 class Nimrod:
@@ -36,15 +37,16 @@ class Nimrod:
                                                              OUTPUT_DIR))
 
         for mutant in self.get_mutants(classes_dir, mutants_dir):
+            start_time = time.time()
             if self.check_mutant(mutant, sut_class):
                 tests_src = os.path.join(output_dir, 'suites', mutant.mid)
-
+                
                 test_result = self.try_evosuite_diff(classes_dir, tests_src,
                                                      sut_class, mutant,
                                                      evosuite_diff_params)
                 if test_result.fail_tests > 0 or test_result.timeout:
                     results[mutant.mid] = self.create_nimrod_result(test_result,
-                                                                    True)
+                                                                    True, 'evosuite')
                 else:
                     evo_test_result = self.try_evosuite(classes_dir, tests_src,
                                                         sut_class, mutant,
@@ -52,7 +54,7 @@ class Nimrod:
                     if evo_test_result and (evo_test_result.fail_tests > 0
                                             or evo_test_result.timeout):
                         results[mutant.mid] = self.create_nimrod_result(
-                            evo_test_result, False)
+                            evo_test_result, False, 'evosuite')
                     else:
                         ran_test_result = self.try_randoop(
                             classes_dir, tests_src, sut_class, mutant,
@@ -60,13 +62,14 @@ class Nimrod:
                         if ran_test_result and (ran_test_result.fail_tests > 0
                                                 or ran_test_result.timeout):
                             results[mutant.mid] = self.create_nimrod_result(
-                                ran_test_result, False)
+                                ran_test_result, False, 'randoop')
                         else:
                             results[mutant.mid] = self.sum_nimrod_result(
                                 ran_test_result, evo_test_result, False)
 
                 self.print_result(mutant, results[mutant.mid])
-                self.write_to_csv(results[mutant.mid], mutant, output_dir)
+                exec_time = time.time() - start_time
+                self.write_to_csv(results[mutant.mid], mutant, output_dir, exec_time=exec_time)
 
         return results
 
@@ -82,6 +85,7 @@ class Nimrod:
 
     @staticmethod
     def check_mutant(mutant, sut_class):
+        print("Analyzing mutant: {0}".format(mutant.mid))
         if os.path.exists(mutant.dir):
             class_file = os.path.join(mutant.dir, package_to_dir(sut_class) +
                                       '.class')
@@ -164,11 +168,11 @@ class Nimrod:
         return output_dir
 
     @staticmethod
-    def create_nimrod_result(test_result, differential):
+    def create_nimrod_result(test_result, differential, test_tool):
         return NimrodResult(
             test_result.fail_tests == 0 and not test_result.timeout,
             test_result.fail_tests > 0 or test_result.timeout,
-            test_result.coverage, differential, test_result.timeout)
+            test_result.coverage, differential, test_result.timeout, test_tool)
 
     @staticmethod
     def sum_nimrod_result(ran, evo, differential):
@@ -189,16 +193,16 @@ class Nimrod:
                     ),
                     timeout=ran.timeout or evo.timeout
                 ),
-                differential
+                differential, ''
             )
         elif ran:
-            return Nimrod.create_nimrod_result(ran, differential)
+            return Nimrod.create_nimrod_result(ran, differential, 'randoop')
         elif evo:
-            return Nimrod.create_nimrod_result(evo, differential)
+            return Nimrod.create_nimrod_result(evo, differential, 'evosuite')
 
     @staticmethod
     def write_to_csv(result, mutant, output_dir='.', filename='nimrod.csv',
-                     exclude_if_exists=False):
+                     exclude_if_exists=False, exec_time=0):
         file = os.path.join(output_dir, filename)
 
         if exclude_if_exists:
@@ -208,16 +212,18 @@ class Nimrod:
         if not os.path.exists(file):
             with open(file, 'w') as f:
                 f.write('mutant,maybe_equivalent,not_equivalent,differential,' +
-                        'timeout,call_points,test_cases,executions\n')
+                        'timeout,killed_by,exec_time,call_points,test_cases,executions\n')
 
         if result and mutant:
             with open(file, 'a') as f:
-                f.write('{0},{1},{2},{3},{4},{5},{6},{7}\n'.format(
+                f.write('{0},{1},{2},{3},{4},{5},{6},{7},{8},{9}\n'.format(
                     mutant.mid,
                     'x' if result.maybe_equivalent else '',
                     'x' if result.not_equivalent else '',
                     'x' if result.differential else '',
                     'x' if result.timeout else '',
+                    result.test_tool,
+                    round(exec_time, 2),                    
                     len(result.coverage.call_points),
                     len(result.coverage.test_cases),
                     result.coverage.executions
