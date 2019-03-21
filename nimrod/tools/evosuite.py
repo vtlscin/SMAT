@@ -93,7 +93,8 @@ class Evosuite(SuiteGenerator):
             print(meth)
 
     
-    def create_method_list(self, impact_analysis_result):    
+    def create_method_list(self, impact_analysis_result):   
+        method_list = '' 
         for meth in impact_analysis_result.methods:
             if self.sut_class in meth:
                 meth_temp = meth.replace(self.sut_class, "")[1:]
