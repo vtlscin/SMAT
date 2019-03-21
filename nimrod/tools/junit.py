@@ -11,7 +11,7 @@ from nimrod.tools.bin import JUNIT, HAMCREST, JMOCKIT, EVOSUITE_RUNTIME
 from nimrod.utils import generate_classpath, package_to_dir
 from nimrod.mutant import Mutant
 
-TIMEOUT = 60 * 3
+TIMEOUT = 60 * 2
 
 
 JUnitResult = namedtuple('JUnitResult', ['ok_tests', 'fail_tests', 
