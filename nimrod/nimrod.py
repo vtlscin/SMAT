@@ -44,6 +44,8 @@ class Nimrod:
                 test_result = self.try_evosuite_diff(classes_dir, tests_src,
                                                      sut_class, mutant,
                                                      evosuite_diff_params)
+                
+                
                 if test_result.fail_tests > 0 or test_result.timeout:
                     results[mutant.mid] = self.create_nimrod_result(test_result,
                                                                     True, 'evosuite')
@@ -124,7 +126,6 @@ class Nimrod:
     def try_evosuite(self, classes_dir, tests_src, sut_class, mutant,
                      evosuite_params=None):
         junit = JUnit(java=self.java, classpath=classes_dir)
-
         evosuite = Evosuite(
             java=self.java,
             classpath=classes_dir,
@@ -132,8 +133,12 @@ class Nimrod:
             sut_class=sut_class,
             params=evosuite_params
         )
+        # suite = evosuite.generate()
 
-        suite = evosuite.generate()
+        safira = Safira(java=self.java, classes_dir=classes_dir,
+                        mutant_dir=mutant.dir)
+
+        suite = evosuite.generate_with_impact_analysis(safira)
 
         return (junit.run_with_mutant(suite, sut_class, mutant)
                 if suite else None)
@@ -212,17 +217,22 @@ class Nimrod:
         if not os.path.exists(file):
             with open(file, 'w') as f:
                 f.write('mutant,maybe_equivalent,not_equivalent,differential,' +
-                        'timeout,killed_by,exec_time,call_points,test_cases,executions\n')
+                        'timeout,killed_by,test_case,exec_time,call_points,test_cases,executions\n')
 
         if result and mutant:
+            killer_tests = []
+            if(len(result.coverage.test_cases)>0):
+                killer_tests = [t[0]+'#'+t[1] for t in result.coverage.test_cases if len(t)==2]
+
             with open(file, 'a') as f:
-                f.write('{0},{1},{2},{3},{4},{5},{6},{7},{8},{9}\n'.format(
+                f.write('{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10}\n'.format(
                     mutant.mid,
                     'x' if result.maybe_equivalent else '',
                     'x' if result.not_equivalent else '',
                     'x' if result.differential else '',
                     'x' if result.timeout else '',
                     result.test_tool,
+                    '' if result.maybe_equivalent else str(killer_tests).replace(',', '|'), 
                     round(exec_time, 2),                    
                     len(result.coverage.call_points),
                     len(result.coverage.test_cases),
