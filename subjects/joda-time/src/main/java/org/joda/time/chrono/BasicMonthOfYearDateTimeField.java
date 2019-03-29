@@ -13,7 +13,7 @@ import org.joda.time.field.FieldUtils;
 import org.joda.time.field.ImpreciseDateTimeField;
 
 
-class BasicMonthOfYearDateTimeField extends org.joda.time.field.ImpreciseDateTimeField
+public class BasicMonthOfYearDateTimeField extends org.joda.time.field.ImpreciseDateTimeField
 {
 
     private static final long serialVersionUID = -8258715387168736L;
@@ -26,7 +26,7 @@ class BasicMonthOfYearDateTimeField extends org.joda.time.field.ImpreciseDateTim
 
     private final int iLeapMonth;
 
-    BasicMonthOfYearDateTimeField( org.joda.time.chrono.BasicChronology chronology, int leapMonth )
+    public BasicMonthOfYearDateTimeField( org.joda.time.chrono.BasicChronology chronology, int leapMonth )
     {
         super( DateTimeFieldType.monthOfYear(), chronology.getAverageMillisPerMonth() );
         iChronology = chronology;
