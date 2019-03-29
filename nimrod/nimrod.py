@@ -1,6 +1,7 @@
 import os
 import shutil
 import time
+import threading
 
 from nimrod.tools.randoop import Randoop
 from nimrod.tools.mujava import MuJava
@@ -25,6 +26,12 @@ class Nimrod:
     def __init__(self, java, maven):
         self.java = java
         self.maven = maven
+        self.suite_evosuite_diff = None
+        self.suite_evosuite = None
+        self.suite_randoop = None
+        self.thread_evosuite_diff = None
+        self.thread_evosuite = None
+        self.thread_randoop = None
 
     def run(self, project_dir, mutants_dir, sut_class, randoop_params=None,
             evosuite_diff_params=None, evosuite_params=None, output_dir=None):
@@ -40,7 +47,18 @@ class Nimrod:
             start_time = time.time()
             if self.check_mutant(mutant, sut_class):
                 tests_src = os.path.join(output_dir, 'suites', mutant.mid)
-                
+
+
+                #Start Threads to generate the test suites
+                self.thread_evosuite_diff = threading.Thread(target=self.gen_evosuite_diff, args=(classes_dir, evosuite_diff_params, mutant, sut_class, tests_src))
+                self.thread_evosuite = threading.Thread(target=self.gen_evosuite, args=(classes_dir, evosuite_params, mutant, sut_class, tests_src))
+                self.thread_randoop = threading.Thread(target=self.gen_randoop, args=(classes_dir, mutant, randoop_params, sut_class, tests_src))
+
+                self.thread_evosuite_diff.start()
+                self.thread_evosuite.start()
+                self.thread_randoop.start()
+
+                #Start to execute the test suites...
                 test_result = self.try_evosuite_diff(classes_dir, tests_src,
                                                      sut_class, mutant,
                                                      evosuite_diff_params)
@@ -107,10 +125,33 @@ class Nimrod:
 
         return mutants
 
+
     def try_evosuite_diff(self, classes_dir, tests_src, sut_class, mutant,
                      evosuite_diff_params=None):
         junit = JUnit(java=self.java, classpath=classes_dir)
+        #Wait the generation of the Suite in the thread
+        self.thread_evosuite_diff.join()
+        return junit.run_with_mutant(self.suite_evosuite_diff, sut_class, mutant)
 
+
+    def try_evosuite(self, classes_dir, tests_src, sut_class, mutant,
+                     evosuite_params=None):
+        junit = JUnit(java=self.java, classpath=classes_dir)
+        # Wait the generation of the Suite in the thread
+        self.thread_evosuite.join()
+        return (junit.run_with_mutant(self.suite_evosuite, sut_class, mutant)
+                if self.suite_evosuite else None)
+
+
+    def try_randoop(self, classes_dir, tests_src, sut_class, mutant,
+                    randoop_params=None):
+        junit = JUnit(java=self.java, classpath=classes_dir)
+        # Wait the generation of the Suite in the thread
+        self.thread_randoop.join()
+        return (junit.run_with_mutant(self.suite_randoop, sut_class, mutant)
+                if self.suite_randoop else None)
+
+    def gen_evosuite_diff(self, classes_dir, evosuite_diff_params, mutant, sut_class, tests_src):
         evosuite = Evosuite(
             java=self.java,
             classpath=classes_dir,
@@ -118,14 +159,10 @@ class Nimrod:
             sut_class=sut_class,
             params=evosuite_diff_params
         )
+        self.suite_evosuite_diff = evosuite.generate_differential(mutant.dir)
+        return self.suite_evosuite_diff
 
-        suite = evosuite.generate_differential(mutant.dir)
-
-        return junit.run_with_mutant(suite, sut_class, mutant)
-
-    def try_evosuite(self, classes_dir, tests_src, sut_class, mutant,
-                     evosuite_params=None):
-        junit = JUnit(java=self.java, classpath=classes_dir)
+    def gen_evosuite(self, classes_dir, evosuite_params, mutant, sut_class, tests_src):
         evosuite = Evosuite(
             java=self.java,
             classpath=classes_dir,
@@ -134,19 +171,16 @@ class Nimrod:
             params=evosuite_params
         )
         # suite = evosuite.generate()
-
         safira = Safira(java=self.java, classes_dir=classes_dir,
                         mutant_dir=mutant.dir)
+        self.suite_evosuite = evosuite.generate_with_impact_analysis(safira)
+        if "Simulator" in sut_class:
+            import distutils.dir_util
+            distutils.dir_util.copy_tree("./config/", evosuite.suite_dir + "/config/")
 
-        suite = evosuite.generate_with_impact_analysis(safira)
+        return self.suite_evosuite
 
-        return (junit.run_with_mutant(suite, sut_class, mutant)
-                if suite else None)
-
-    def try_randoop(self, classes_dir, tests_src, sut_class, mutant,
-                    randoop_params=None):
-        junit = JUnit(java=self.java, classpath=classes_dir)
-
+    def gen_randoop(self, classes_dir, mutant, randoop_params, sut_class, tests_src):
         randoop = Randoop(
             java=self.java,
             classpath=classes_dir,
@@ -154,14 +188,13 @@ class Nimrod:
             sut_class=sut_class,
             params=randoop_params
         )
-
         safira = Safira(java=self.java, classes_dir=classes_dir,
                         mutant_dir=mutant.dir)
-
-        suite = randoop.generate_with_impact_analysis(safira)
-
-        return (junit.run_with_mutant(suite, sut_class, mutant)
-                if suite else None)
+        self.suite_randoop = randoop.generate_with_impact_analysis(safira)
+        if "Simulator" in sut_class:
+            import distutils.dir_util
+            distutils.dir_util.copy_tree("./config/", randoop.suite_dir + "/config/")
+        return self.suite_randoop
 
     @staticmethod
     def check_output_dir(output_dir):

@@ -88,12 +88,7 @@ class Evosuite(SuiteGenerator):
 
         return super().generate(make_dir=False)   
 
-    @staticmethod
-    def convert_to_asm_format(methods):
-        for meth in methods:
-            print(meth)
 
-    
     def create_method_list(self, impact_analysis_result):   
         method_list = '' 
         for meth in impact_analysis_result.methods:
