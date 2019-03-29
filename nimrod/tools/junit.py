@@ -145,10 +145,17 @@ class JUnit:
                             mutant.dir[:mutant.dir.rfind(os.sep)], 'ORIGINAL')
                     if os.path.exists(original_dir):
                         self.java.compile_all(self.classpath, original_dir)
-                        self.exec_with_mutant(suite.suite_dir,
+                        result_original = self.exec_with_mutant(suite.suite_dir,
                                               suite.suite_classes_dir,
                                               sut_class, test_class,
                                               self.get_original(original_dir))
+                        if result_original.fail_tests > 0:
+                            if result_original.fail_test_set == result.fail_test_set:
+                                print("ORIGINAIS para " + suite.suite_name)
+                                fail_tests = 0
+                                fail_test_set = set()
+                                # import pdb
+                                # pdb.set_trace()                      
                     else:
                         print('[WARNING] ORIGINAL class not found in {0}, using'
                               ' mutant in coverage.'.format(original_dir))
