@@ -17,6 +17,7 @@ class Evosuite(SuiteGenerator):
             '-jar', EVOSUITE,
             '-projectCP', self.classpath,
             '-class', self.sut_class,
+            '-Dtimeout', '10000',
             '-DOUTPUT_DIR=' + self.suite_dir
         ]
 
