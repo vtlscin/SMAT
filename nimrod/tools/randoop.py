@@ -33,6 +33,7 @@ class Randoop(SuiteGenerator):
         return ['RegressionTest']
 
     def generate_with_impact_analysis(self, impact_analysis):
+        method_list = ""
         self._make_src_dir()
         impact_analysis_result = impact_analysis.run()
         method_list = self.create_method_list(impact_analysis_result,
@@ -42,8 +43,8 @@ class Randoop(SuiteGenerator):
 
         return super().generate(make_dir=False)
 
-    @staticmethod
-    def create_method_list(impact_analysis_result, output_dir,
+    
+    def create_method_list(self, impact_analysis_result, output_dir,
                            filename=METHOD_LIST_FILENAME):
         filename = os.path.join(output_dir, filename)
 
