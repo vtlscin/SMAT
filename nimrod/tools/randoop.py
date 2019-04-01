@@ -39,6 +39,9 @@ class Randoop(SuiteGenerator):
         method_list = self.create_method_list(impact_analysis_result,
                                               self.suite_dir)
         if os.path.exists(method_list):
+            elem = [x for x in self.parameters if '--methodlist=' in x]
+            if len(elem) > 0:
+                self.parameters.remove(elem[0])
             self.parameters.append('--methodlist=' + method_list)
 
         return super().generate(make_dir=False)
