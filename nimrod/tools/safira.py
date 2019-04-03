@@ -36,7 +36,7 @@ class Safira(ImpactAnalysis):
         classpath = generate_classpath([
             SAFIRA
         ])
-
+        params = ["--intraclass"]
         start = time.time()
         try:
             output = self.java.exec_java(
