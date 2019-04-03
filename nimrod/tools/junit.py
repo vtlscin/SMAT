@@ -125,6 +125,7 @@ class JUnit:
         run_time = 0
         call_points = set()
         test_cases = set()
+        class_coverage = dict()
         executions = 0
         timeout = False
 
@@ -150,12 +151,11 @@ class JUnit:
                                               sut_class, test_class,
                                               self.get_original(original_dir))
                         if result_original.fail_tests > 0:
+                            #Se os testes tb falham no original e são os mesmos teste que falahm no mutante. 
+                            #Logo devem ser Equivalentes.
                             if result_original.fail_test_set == result.fail_test_set:
-                                print("ORIGINAIS para " + suite.suite_name)
                                 fail_tests = 0
                                 fail_test_set = set()
-                                # import pdb
-                                # pdb.set_trace()                      
                     else:
                         print('[WARNING] ORIGINAL class not found in {0}, using'
                               ' mutant in coverage.'.format(original_dir))
@@ -166,6 +166,7 @@ class JUnit:
                     call_points = call_points.union(cov.call_points)
                     test_cases = test_cases.union(cov.test_cases)
                     executions += cov.executions
+                    class_coverage[test_class] = cov.class_coverage
             else:
                 r = self.exec(suite.suite_dir, suite.suite_classes_dir,
                               sut_class, test_class)
@@ -173,7 +174,7 @@ class JUnit:
                     return None
 
         return JUnitResult(ok_tests, fail_tests, fail_test_set, run_time,
-                           Coverage(call_points, test_cases, executions),
+                           Coverage(call_points, test_cases, executions,class_coverage),
                            timeout)
 
     @staticmethod
@@ -187,7 +188,7 @@ class JUnit:
         return jmockit.coverage(mutation_line)
 
 
-Coverage = namedtuple('Coverage', ['call_points', 'test_cases', 'executions'])
+Coverage = namedtuple('Coverage', ['call_points', 'test_cases', 'executions', 'class_coverage'])
 
 
 class JMockit:
@@ -234,7 +235,25 @@ class JMockit:
                         for cp in cps:
                             call_points.add((file, test_case, cp))
 
-        return Coverage(call_points, test_cases, executions)
+        class_coverage =  JMockit._get_coverage_info_class(soup)
+        return Coverage(call_points, test_cases, executions, class_coverage)
+
+
+
+    @staticmethod
+    def _get_coverage_info_class(soup):
+        executions = 0
+        class_coverage_line = dict()
+
+        for tr in soup.find_all('tr'):
+            td_line = tr.find_all('td', class_='line')
+            td_executions = tr.find_all('td', class_='count')
+            td_count = tr.find_all('td', class_='callpoints-count')
+            if (td_line and td_count and td_executions):
+                line = int(td_line[0].string)
+                executions = int(td_executions[0].string.strip())
+                class_coverage_line[line] = executions
+        return class_coverage_line
 
     @staticmethod
     def _extract_li(li):

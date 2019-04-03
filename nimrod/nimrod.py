@@ -5,6 +5,7 @@ import threading
 
 from nimrod.tools.randoop import Randoop
 from nimrod.tools.mujava import MuJava
+from nimrod.mutant import Mutant
 from nimrod.tools.safira import Safira
 from nimrod.tools.junit import JUnit, JUnitResult, Coverage
 from nimrod.tools.evosuite import Evosuite
@@ -18,7 +19,7 @@ OUTPUT_DIR = 'nimrod_output'
 
 NimrodResult = namedtuple('NimrodResult', ['maybe_equivalent', 'not_equivalent',
                                            'coverage', 'differential',
-                                           'timeout', 'test_tool'])
+                                           'timeout', 'test_tool', 'is_equal_coverage'])
 
 
 class Nimrod:
@@ -87,8 +88,11 @@ class Nimrod:
                             results[mutant.mid] = self.create_nimrod_result(
                                 ran_test_result, False, 'randoop')
                         else:
+                            # If no test kill, check coverage with original
+                            is_equal_coverage = self.check_class_coverage(classes_dir,
+                                                        sut_class, mutant, evo_test_result, ran_test_result)
                             results[mutant.mid] = self.sum_nimrod_result(
-                                ran_test_result, evo_test_result, False)
+                                ran_test_result, evo_test_result, False, is_equal_coverage=is_equal_coverage)
 
                 self.print_result(mutant, results[mutant.mid])
                 exec_time = time.time() - start_time
@@ -133,6 +137,24 @@ class Nimrod:
         mujava.compile_mutants(classpath, mutants)
 
         return mutants
+
+
+    def check_class_coverage(self, classes_dir, sut_class, mutant, evo_test_result, ran_test_result):
+        
+        original_dir = os.path.join(
+                            mutant.dir[:mutant.dir.rfind(os.sep)], 'ORIGINAL')
+        original = Mutant(mid='ORIGINAL', operator=None, line_number=None,
+                      method=None, transformation=None, dir=original_dir)
+
+        junit = JUnit(java=self.java, classpath=classes_dir)
+        orig_evosuite_result = (junit.run_with_mutant(self.suite_evosuite, sut_class, original)
+                if self.suite_evosuite else None)
+        orig_ran_result = (junit.run_with_mutant(self.suite_randoop, sut_class, original)
+                if self.suite_randoop else None)        
+
+        evosuite_coverage = (orig_evosuite_result.coverage.class_coverage == evo_test_result.coverage.class_coverage)
+        randoop_coverage = (orig_ran_result.coverage.class_coverage == ran_test_result.coverage.class_coverage)
+        return  (evosuite_coverage and randoop_coverage)
 
 
     def try_evosuite_diff(self, classes_dir, tests_src, sut_class, mutant,
@@ -212,14 +234,14 @@ class Nimrod:
         return output_dir
 
     @staticmethod
-    def create_nimrod_result(test_result, differential, test_tool):
+    def create_nimrod_result(test_result, differential, test_tool, is_equal_coverage=False):
         return NimrodResult(
             test_result.fail_tests == 0 and not test_result.timeout,
             test_result.fail_tests > 0 or test_result.timeout,
-            test_result.coverage, differential, test_result.timeout, test_tool)
+            test_result.coverage, differential, test_result.timeout, test_tool, is_equal_coverage)
 
     @staticmethod
-    def sum_nimrod_result(ran, evo, differential):
+    def sum_nimrod_result(ran, evo, differential, is_equal_coverage):
         if ran and evo:
             return Nimrod.create_nimrod_result(
                 JUnitResult(
@@ -234,15 +256,18 @@ class Nimrod:
                                     .union(evo.coverage.test_cases)),
                         executions=(ran.coverage.executions
                                     + evo.coverage.executions),
+                        class_coverage=dict(evo.coverage.class_coverage, **ran.coverage.class_coverage),          
                     ),
                     timeout=ran.timeout or evo.timeout
                 ),
-                differential, ''
+                differential, 
+                '',
+                is_equal_coverage
             )
         elif ran:
-            return Nimrod.create_nimrod_result(ran, differential, 'randoop')
+            return Nimrod.create_nimrod_result(ran, differential, '', is_equal_coverage)
         elif evo:
-            return Nimrod.create_nimrod_result(evo, differential, 'evosuite')
+            return Nimrod.create_nimrod_result(evo, differential, '', is_equal_coverage)
 
     @staticmethod
     def write_to_csv(result, mutant, output_dir='.', filename='nimrod.csv',
@@ -256,7 +281,7 @@ class Nimrod:
         if not os.path.exists(file):
             with open(file, 'w') as f:
                 f.write('mutant,maybe_equivalent,not_equivalent,differential,' +
-                        'timeout,killed_by,test_case,exec_time,call_points,test_cases,executions\n')
+                        'timeout,killed_by,test_case,exec_time,call_points,test_cases,executions,equal_line_coverage\n')
 
         if result and mutant:
             killer_tests = []
@@ -264,7 +289,7 @@ class Nimrod:
                 killer_tests = [t[0]+'#'+t[1] for t in result.coverage.test_cases if len(t)==2]
 
             with open(file, 'a') as f:
-                f.write('{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10}\n'.format(
+                f.write('{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11}\n'.format(
                     mutant.mid,
                     'x' if result.maybe_equivalent else '',
                     'x' if result.not_equivalent else '',
@@ -275,7 +300,8 @@ class Nimrod:
                     round(exec_time, 2),                    
                     len(result.coverage.call_points),
                     len(result.coverage.test_cases),
-                    result.coverage.executions
+                    result.coverage.executions,
+                    result.is_equal_coverage,
                 ))
                 f.close()
 
