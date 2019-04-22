@@ -85,6 +85,24 @@ class Maven:
                            'compile').decode('unicode_escape')
         )
 
+    def save_dependencies(self, project_dir):
+        try:
+            os.chdir(project_dir)
+            out = os.system("mvn dependency:copy-dependencies --fail-at-end")
+            return True
+        except OSError:
+            print("It was not possible to save the project dependencies.")
+            return False
+
+    def check_status_compiled_version(self, project_dir):
+        try:
+            if os.path.exists(project_dir):
+                self.save_dependencies(project_dir)
+                return True
+        except OSError:
+            print ("Directory does not exist.")
+            return False
+
     @staticmethod
     def extract_results(output):
         output = re.findall('Compiling [0-9]* source files? to .*\n', output)

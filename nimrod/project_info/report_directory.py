@@ -58,7 +58,7 @@ class ReportDirectory:
             print ("It was not possible to save the commit directories here. It already exists or another problem has happened.")
 
     def create_directory_for_merge_scenario(self, hash, project_name):
-        os.chdir(self.report_directory_path+"/"+project_name)
+        os.chdir(os.path.join(self.report_directory_path,project_name))
         os.mkdir(hash)
 
     def remove_failed_merge_scenario(self, project_name, merge_scenario):
