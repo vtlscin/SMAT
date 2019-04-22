@@ -23,7 +23,9 @@ setup(
     ],
     install_requires=[
         'argparse==1.4.0',
-        'beautifulsoup4==4.6.0'
+        'beautifulsoup4==4.6.0',
+        'pygithub==1.43.7',
+        'gitpython==2.1.11'
     ],
     test_suite='nose.collector',
     tests_require=[
