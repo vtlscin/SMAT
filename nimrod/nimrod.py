@@ -34,6 +34,8 @@ class Nimrod:
     def run(self, project_dir, mutants_dir, sut_class, randoop_params=None,
             evosuite_diff_params=None, evosuite_params=None, output_dir=None):
 
+
+
         results = {}
 
         _, classes_dir = self.maven.compile(project_dir, clean=True)
@@ -45,7 +47,9 @@ class Nimrod:
             start_time = time.time()
             if self.check_mutant(mutant, sut_class):
                 tests_src = os.path.join(output_dir, 'suites', mutant.mid)
-
+                print(mutant.mid)
+                #thread_evosuite_test = threading.Thread(target=self.gen_evo_test, args=(evosuite_diff_params, tests_src))
+                #thread_evosuite_test.start()
 
                 #Start Threads to generate the test suites
                 thread_evosuite_diff = threading.Thread(target=self.gen_evosuite_diff, args=(classes_dir, evosuite_diff_params, mutant, sut_class, tests_src))
@@ -201,6 +205,22 @@ class Nimrod:
         )
         self.suite_evosuite_diff = evosuite.generate_differential(mutant.dir)
         return self.suite_evosuite_diff
+
+    def gen_evo_test(self, evosuite_diff_params, tests_src):
+        classes_dir = '$(find /media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/ | paste -sd ":")":/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/classes/"'
+
+        sut_class ="br.com.Ball"
+        test = '$(find /media/jprm/Ubuntu/IC/example-project-evosuite/left/target/dependency/ | paste -sd ":")":/media/jprm/Ubuntu/IC/example-project-evosuite/left/target/classes"'
+        evosuite = Evosuite(
+            java=self.java,
+            classpath=classes_dir,
+            sut_class=sut_class,
+            tests_src=tests_src,
+            params=evosuite_diff_params
+        )
+        suite_evosuite_dif = evosuite.generate_differential(test)
+        return self.suite_evosuite_dif
+
 
     def gen_evosuite(self, classes_dir, evosuite_params, mutant, sut_class, tests_src):
         evosuite = Evosuite(
