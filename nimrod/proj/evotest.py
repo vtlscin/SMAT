@@ -18,6 +18,9 @@ from nimrod.tools.java import Java
 from nimrod.tools.maven import Maven
 from nimrod.tests.utils import get_config
 
+NimrodResult = namedtuple('NimrodResult', ['maybe_equivalent', 'not_equivalent',
+                                           'coverage', 'differential',
+                                           'timeout', 'test_tool', 'is_equal_coverage'])
 class evotest:
 
 
@@ -43,10 +46,16 @@ class evotest:
         return self.suite_evosuite_diff
 
 
-    def try_evosuite_diff(self, classes_dir, sut_class, mutant):
+    def try_evosuite_diff(self, classes_dir, sut_class, mutant_dir):
         junit = JUnit(java=self.java, classpath=classes_dir)
-        return junit.run_with_mutant(self.suite_evosuite_diff, sut_class, mutant)
+        return junit.run_with_mutant(self.suite_evosuite_diff, sut_class, mutant_dir)
 
+
+    def create_nimrod_result(test_result, differential, test_tool, is_equal_coverage=False):
+        return NimrodResult(
+            test_result.fail_tests == 0 and not test_result.timeout,
+            test_result.fail_tests > 0 or test_result.timeout,
+            test_result.coverage, differential, test_result.timeout, test_tool, is_equal_coverage)
 
 if __name__ == '__main__':
 
@@ -58,6 +67,14 @@ if __name__ == '__main__':
     thread_evosuite_diff.start()
     thread_evosuite_diff.join()
     print("ended")
+
+    test_result = evo.try_evosuite_diff(evo.sut_class,
+                                         evo.classes_dir, evo.dRegCp)
+
+    print(test_result)
+    if test_result.fail_tests > 0 or test_result.timeout:
+    #    results = evo.create_nimrod_result(test_result, True, 'evosuite')
+          print("dsdsd")
 
 '''
     test_result = evo.try_evosuite_diff(evo.classes_dir, evo.tests_src,evo.sut_class)

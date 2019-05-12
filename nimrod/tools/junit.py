@@ -37,16 +37,16 @@ class JUnit:
                           timeout)
 
     def exec_with_mutant(self, suite_dir, suite_classes_dir, sut_class,
-                         test_class, mutant, timeout=TIMEOUT):
+                         test_class, mutant_dir, timeout=TIMEOUT):
         classpath = generate_classpath([
             JMOCKIT, JUNIT, HAMCREST, EVOSUITE_RUNTIME,
             suite_classes_dir,
-            mutant.dir,
+            mutant_dir,
             self.classpath
         ])
 
         return self._exec(suite_dir, sut_class, test_class, classpath,
-                          mutant.dir, timeout)
+                          mutant_dir, timeout)
 
     def _exec(self, suite_dir, sut_class, test_class, classpath,
               cov_src_dirs='.', timeout=TIMEOUT):
@@ -117,7 +117,7 @@ class JUnit:
 
         return tests_fail
 
-    def run_with_mutant(self, suite, sut_class, mutant, cov_original=True,
+    def run_with_mutant(self, suite, sut_class, mutant_dir, cov_original=True,
                         original_dir=None):
         ok_tests = 0
         fail_tests = 0
@@ -132,7 +132,7 @@ class JUnit:
         for test_class in suite.test_classes:
             result = self.exec_with_mutant(suite.suite_dir,
                                            suite.suite_classes_dir, sut_class,
-                                           test_class, mutant)
+                                           test_class, mutant_dir)
             ok_tests += result.ok_tests
             fail_tests += result.fail_tests
             fail_test_set = fail_test_set.union(result.fail_test_set)
@@ -143,7 +143,7 @@ class JUnit:
                 if cov_original:
                     if original_dir is None:
                         original_dir = os.path.join(
-                            mutant.dir[:mutant.dir.rfind(os.sep)], 'ORIGINAL')
+                            mutant_dir[:mutant_dir.rfind(os.sep)], 'ORIGINAL')
                     if os.path.exists(original_dir):
                         self.java.compile_all(self.classpath, original_dir)
                         result_original = self.exec_with_mutant(suite.suite_dir,
@@ -159,7 +159,7 @@ class JUnit:
                     else:
                         print('[WARNING] ORIGINAL class not found in {0}, using'
                               ' mutant in coverage.'.format(original_dir))
-
+                '''
                 cov = self.run_coverage(suite.suite_dir, sut_class,
                                         mutant.line_number)
                 if cov:
@@ -167,6 +167,7 @@ class JUnit:
                     test_cases = test_cases.union(cov.test_cases)
                     executions += cov.executions
                     class_coverage[test_class] = cov.class_coverage
+                '''
             else:
                 r = self.exec(suite.suite_dir, suite.suite_classes_dir,
                               sut_class, test_class)
