@@ -68,8 +68,8 @@ if __name__ == '__main__':
     thread_evosuite_diff.join()
     print("ended")
 
-    test_result = evo.try_evosuite_diff(evo.sut_class,
-                                         evo.classes_dir, evo.dRegCp)
+    test_result = evo.try_evosuite_diff(evo.classes_dir,
+                                         evo.sut_class, evo.dRegCp)
 
     print(test_result)
     if test_result.fail_tests > 0 or test_result.timeout:
