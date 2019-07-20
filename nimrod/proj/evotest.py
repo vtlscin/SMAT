@@ -68,15 +68,19 @@ class evotest:
         data = [(commit.get_base_hash(), "base"), (commit.get_left_hash(), "left"), (commit.get_right_hash(), "right"), (commit.get_merge_hash(),"merge")]
         for hash in data:
             self.project.checkout_on_commit(hash[0])
-            self.maven.clean(self.project.get_path_local_project(), 60)
+            a =self.maven.compile(self.project.get_path_local_project(), 120, clean=True,install=True)
+            print(a)
             self.maven.save_dependencies(self.project.get_path_local_project())
             dst = self.projects_folder + self.project.get_project_name() + "/" + hash[1]
             if os.path.exists(dst):
                 shutil.rmtree(dst)
 
-            base_dir = shutil.copytree(self.project.get_path_local_project(), dst)
+            shutil.copytree(self.project.get_path_local_project(), dst)
 
-            print(base_dir)
+
+    def generateDependenciesPath(self):
+        self.projects_folder + self.project.get_project_name() + "/"
+
 if __name__ == '__main__':
 
     evo = evotest()
