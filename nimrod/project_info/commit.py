@@ -1,11 +1,11 @@
 class Commit:
 
-    def __init__(self, merge_hash, left_hash, right_hash, base_hash):
+    def __init__(self, base_hash, left_hash, right_hash, merge_hash):
         self.merge_hash = merge_hash
         self.left_hash = left_hash
         self.right_hash = right_hash
         self.base_hash = base_hash
-        self.valid_scenario = self.check_validate_scenario(base_hash, left_hash, right_hash)
+        #self.valid_scenario = self.check_validate_scenario(base_hash, left_hash, right_hash)
 
     def get_merge_hash(self):
         return self.merge_hash
