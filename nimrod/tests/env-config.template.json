@@ -1,4 +1,9 @@
 {
   "java_home": "../jdk",
-  "maven_home": "../apache-maven"
+  "maven_home": "../apache-maven",
+
+  "repo_dir": ".../example-project-evosuite",
+  "projects_folder": ".../Projects/",
+  "path_hash_csv" : ".../mergeScenarios.csv",
+  "tests_dst": ".../output"
 }

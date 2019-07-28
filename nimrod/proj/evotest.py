@@ -29,20 +29,17 @@ class evotest:
         self.classes_dir = '/home/jprm/Documents/IC/example-project-evosuite/left/target/dependency/:/home/jprm/Documents/IC/example-project-evosuite/left/target/dependency/apiguardian-api-1.0.0.jar:/home/jprm/Documents/IC/example-project-evosuite/left/target/dependency/commons-lang3-3.0.jar:/home/jprm/Documents/IC/example-project-evosuite/left/target/dependency/hamcrest-core-1.3.jar:/home/jprm/Documents/IC/example-project-evosuite/left/target/dependency/junit-4.13-beta-1.jar:/home/jprm/Documents/IC/example-project-evosuite/left/target/dependency/junit-jupiter-api-5.0.3.jar:/home/jprm/Documents/IC/example-project-evosuite/left/target/dependency/junit-platform-commons-1.0.3.jar:/home/jprm/Documents/IC/example-project-evosuite/left/target/dependency/opentest4j-1.0.0.jar:/home/jprm/Documents/IC/example-project-evosuite/left/target/classes/'
         self.mergeDir = '/home/jprm/Documents/IC/example-project-evosuite/merge/target/dependency/:/home/jprm/Documents/IC/example-project-evosuite/merge/target/dependency/apiguardian-api-1.0.0.jar:/home/jprm/Documents/IC/example-project-evosuite/merge/target/dependency/commons-lang3-3.0.jar:/home/jprm/Documents/IC/example-project-evosuite/merge/target/dependency/hamcrest-core-1.3.jar:/home/jprm/Documents/IC/example-project-evosuite/merge/target/dependency/junit-4.13-beta-1.jar:/home/jprm/Documents/IC/example-project-evosuite/merge/target/dependency/junit-jupiter-api-5.0.3.jar:/home/jprm/Documents/IC/example-project-evosuite/merge/target/dependency/junit-platform-commons-1.0.3.jar:/home/jprm/Documents/IC/example-project-evosuite/merge/target/dependency/opentest4j-1.0.0.jar:/home/jprm/Documents/IC/example-project-evosuite/merge/target/classes/'
 
-        self.sut_class = "br.com.Ball"
-        self.java = Java(get_config()['java_home'])
-        self.maven = Maven(self.java, get_config()['maven_home'])
+        self.config = get_config()
         self.evosuite_diff_params = None
         self.suite_evosuite_diff =None
 
-
-        # for now defines most of the folders configuration
-
-        self.tests_src = "/home/jprm/Documents/IC/nimrod-hunor/nimrod/proj/output"
-
-        self.project = GitProject("/home/jprm/Documents/IC/ex/example-project-evosuite")
-        self.projects_folder = "/home/jprm/Documents/IC/ex/Projects/"
-        self.path_hash_csv = "/home/jprm/Documents/IC/ex/mergeScenarios.csv"
+        self.sut_class = "br.com.Ball"
+        self.java = Java(self.config['java_home'])
+        self.maven = Maven(self.java, self.config['maven_home'])
+        self.tests_dst = self.config["tests_dst"]
+        self.project = GitProject(self.config["repo_dir"])
+        self.projects_folder = self.config["projects_folder"]
+        self.path_hash_csv = self.config["path_hash_csv"]
 
     def gen_evosuite_diff(self):
         evosuite = Evosuite(
@@ -50,7 +47,7 @@ class evotest:
             classpath=self.classes_dir,
             sut_class=self.sut_class,
             params=self.evosuite_diff_params,
-            tests_src=self.tests_src
+            tests_src=self.tests_dst
         )
         self.suite_evosuite_diff = evosuite.generate_differential(self.dRegCp)
         return self.suite_evosuite_diff
