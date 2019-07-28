@@ -16,6 +16,6 @@ class MergeScenario:
         with open(path_merge_scenarios) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             for row in csv_reader:
-                commit = Commit(row[0],row[1],row[2],row[3])
+                commit = Commit(row[0], row[1], row[2], row[3], row[4])
                 merge_scenarios.append(commit)
         return merge_scenarios

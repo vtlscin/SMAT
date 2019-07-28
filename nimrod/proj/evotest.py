@@ -33,7 +33,7 @@ class evotest:
         self.evosuite_diff_params = None
         self.suite_evosuite_diff =None
 
-        self.sut_class = "br.com.Ball"
+        self.sut_class = None
         self.java = Java(self.config['java_home'])
         self.maven = Maven(self.java, self.config['maven_home'])
         self.tests_dst = self.config["tests_dst"]
@@ -65,9 +65,10 @@ class evotest:
             test_result.coverage, differential, test_result.timeout, test_tool, is_equal_coverage)
 
 
-    def analyze_commit(self, commit):
+    def analyze_commits(self, commit):
 
         data = [(commit.get_base_hash(), "base"), (commit.get_left_hash(), "left"), (commit.get_right_hash(), "right"), (commit.get_merge_hash(),"merge")]
+        self.sut_class = commit.get_sut_class()
         for hash in data:
             self.project.checkout_on_commit(hash[0])
             a =self.maven.compile(self.project.get_path_local_project(), 120, clean=True, install=True)
@@ -99,11 +100,11 @@ if __name__ == '__main__':
 
     evo = evotest()
 
-
     merge = MergeScenario(evo.project.get_path_local_project, evo.path_hash_csv)
     merge_scenarios = merge.get_merge_scenarios()
     for scenario in merge_scenarios:
-        evo.analyze_commit(scenario)
+        evo.analyze_commits(scenario)
+        #print(scenario.get_sut_class())
 
     evo.dRegCp = evo.generateDependenciesPath("base")
     evo.classes_dir = evo.generateDependenciesPath("left")
