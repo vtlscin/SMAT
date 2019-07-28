@@ -1,6 +1,7 @@
 import os
 import shutil
 import time
+import csv
 import threading
 import subprocess
 from nimrod.tools.randoop import Randoop
@@ -40,6 +41,7 @@ class evotest:
         self.project = GitProject(self.config["repo_dir"])
         self.projects_folder = self.config["projects_folder"]
         self.path_hash_csv = self.config["path_hash_csv"]
+        self.path_output_csv = self.config["path_output_csv"]
 
     def gen_evosuite_diff(self):
         evosuite = Evosuite(
@@ -52,18 +54,16 @@ class evotest:
         self.suite_evosuite_diff = evosuite.generate_differential(self.dRegCp)
         return self.suite_evosuite_diff
 
-
     def try_evosuite_diff(self, classes_dir, sut_class, mutant_dir):
         junit = JUnit(java=self.java, classpath=classes_dir)
-        return junit.run_with_mutant(self.suite_evosuite_diff, sut_class, mutant_dir)
-
+        res = junit.run_with_mutant(self.suite_evosuite_diff, sut_class, mutant_dir)
+        return res
 
     def create_nimrod_result(test_result, differential, test_tool, is_equal_coverage=False):
         return NimrodResult(
             test_result.fail_tests == 0 and not test_result.timeout,
             test_result.fail_tests > 0 or test_result.timeout,
             test_result.coverage, differential, test_result.timeout, test_tool, is_equal_coverage)
-
 
     def analyze_commits(self, commit):
 
@@ -95,10 +95,23 @@ class evotest:
 
         return finalPath
 
+    def writeOutputCsv(self, outputBase, outputLeft, outputMerge):
+
+        output=["lorem", "False"]
+        if outputBase[1] and not outputLeft[1] and outputMerge[1]:
+            output = ["ipsum", "True"]
+
+        with open(self.path_output_csv, 'a') as fd:
+            writer = csv.writer(fd)
+            writer.writerow(output)
+
+
+
 
 if __name__ == '__main__':
 
     evo = evotest()
+    #evo.writeOutputCsv(["aasas","lol"])
 
     merge = MergeScenario(evo.project.get_path_local_project, evo.path_hash_csv)
     merge_scenarios = merge.get_merge_scenarios()
@@ -106,23 +119,23 @@ if __name__ == '__main__':
         evo.analyze_commits(scenario)
         #print(scenario.get_sut_class())
 
-    evo.dRegCp = evo.generateDependenciesPath("base")
-    evo.classes_dir = evo.generateDependenciesPath("left")
-    evo.mergeDir = evo.generateDependenciesPath("merge")
+        evo.dRegCp = evo.generateDependenciesPath("base")
+        evo.classes_dir = evo.generateDependenciesPath("left")
+        evo.mergeDir = evo.generateDependenciesPath("merge")
 
-    thread_evosuite_diff = threading.Thread(target=evo.gen_evosuite_diff)
-    print("waiting analisys finish")
-    thread_evosuite_diff.start()
-    thread_evosuite_diff.join()
-    print("ended")
+        thread_evosuite_diff = threading.Thread(target=evo.gen_evosuite_diff)
+        print("waiting analisys finish")
+        thread_evosuite_diff.start()
+        thread_evosuite_diff.join()
+        print("ended")
 
-    time.sleep(5)
-    test_result = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.dRegCp)#fail on base
-    #time.sleep(4)
-    test_result2 = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.classes_dir)#pass on left
-    #time.sleep(4)
+        time.sleep(5)
+        test_result = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.dRegCp)#fail on base
+        #time.sleep(4)
+        test_result2 = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.classes_dir)#pass on left
+        #time.sleep(4)
 
-    test_result3 = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.mergeDir)#fail on merge
+        test_result3 = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.mergeDir)#fail on merge
 
 
 
@@ -144,9 +157,10 @@ if __name__ == '__main__':
 
 
 
-    print(test_result)
-    print(test_result2)
-    print(test_result3)
+        print(test_result)
+        print(test_result2)
+        print(test_result3)
+        evo.writeOutputCsv(test_result, test_result2, test_result3)
 
 
 
