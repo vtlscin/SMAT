@@ -95,11 +95,11 @@ class evotest:
 
         return finalPath
 
-    def writeOutputCsv(self, outputBase, outputLeft, outputMerge):
+    def writeOutputCsv(self, outputBase, outputLeft, outputMerge, commit):
 
-        output=["lorem", "False"]
+        output=[commit.get_merge_hash(), "False"]
         if outputBase[1] and not outputLeft[1] and outputMerge[1]:
-            output = ["ipsum", "True"]
+            output = [commit.get_merge_hash(), "True"]
 
         with open(self.path_output_csv, 'a') as fd:
             writer = csv.writer(fd)
@@ -160,7 +160,7 @@ if __name__ == '__main__':
         print(test_result)
         print(test_result2)
         print(test_result3)
-        evo.writeOutputCsv(test_result, test_result2, test_result3)
+        evo.writeOutputCsv(test_result, test_result2, test_result3, scenario)
 
 
 
