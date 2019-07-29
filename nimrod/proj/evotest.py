@@ -67,24 +67,24 @@ class evotest:
 
     def analyze_commits(self, commit):
 
-        data = [(commit.get_base_hash(), "base"), (commit.get_left_hash(), "left"), (commit.get_right_hash(), "right"), (commit.get_merge_hash(),"merge")]
+        data = [(commit.get_base_hash(), "base"), (commit.get_left_hash(), "left"), (commit.get_right_hash(), "right"), (commit.get_merge_hash(), "merge")]
         self.sut_class = commit.get_sut_class()
         for hash in data:
             self.project.checkout_on_commit(hash[0])
-            a =self.maven.compile(self.project.get_path_local_project(), 120, clean=True, install=True)
+            a = self.maven.compile(self.project.get_path_local_project(), 120, clean=True, install=True)
             print(a)
             self.maven.save_dependencies(self.project.get_path_local_project())
-            dst = self.projects_folder + self.project.get_project_name() + "/" + hash[1]
+            dst = self.projects_folder + self.project.get_project_name() + "/" + data[3][0] + "/"+ hash[1]
             if os.path.exists(dst):
                 shutil.rmtree(dst)
 
             shutil.copytree(self.project.get_path_local_project(), dst)
 
 
-    def generateDependenciesPath(self,commit_type):
-        project_folder = self.projects_folder + self.project.get_project_name() + "/"
+    def generateDependenciesPath(self,scenario, commit_type):
+        project_folder = self.projects_folder + self.project.get_project_name() + "/" +scenario.get_merge_hash() + "/"
 
-        dependencies = [(x[0], x[2]) for x in os.walk(project_folder+ commit_type+"/target/dependency/")]
+        dependencies = [(x[0], x[2]) for x in os.walk(project_folder + commit_type+"/target/dependency/")]
         depPath = dependencies[0][0]
         finalPath=""
         print(depPath)
@@ -119,9 +119,9 @@ if __name__ == '__main__':
         evo.analyze_commits(scenario)
         #print(scenario.get_sut_class())
 
-        evo.dRegCp = evo.generateDependenciesPath("base")
-        evo.classes_dir = evo.generateDependenciesPath("left")
-        evo.mergeDir = evo.generateDependenciesPath("merge")
+        evo.dRegCp = evo.generateDependenciesPath(scenario,"base")
+        evo.classes_dir = evo.generateDependenciesPath(scenario,"left")
+        evo.mergeDir = evo.generateDependenciesPath(scenario,"merge")
 
         thread_evosuite_diff = threading.Thread(target=evo.gen_evosuite_diff)
         print("waiting analisys finish")
