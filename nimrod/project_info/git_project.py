@@ -7,6 +7,7 @@ class GitProject():
         self.project_name = path_local_project.split("/")[-1]
         self.analysis_directory_path = path_local_project.split("subjects")[0]
         self.repo = Repo(self.path_local_project)
+
     def get_path_local_project(self):
         return self.path_local_project
 

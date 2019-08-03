@@ -6,7 +6,7 @@ class Commit:
         self.right_hash = right_hash
         self.base_hash = base_hash
         self.sut_class = sut_class
-        #self.valid_scenario = self.check_validate_scenario(base_hash, left_hash, right_hash)
+        # self.valid_scenario = self.check_validate_scenario(base_hash, left_hash, right_hash)
 
     def get_merge_hash(self):
         return self.merge_hash
@@ -24,7 +24,7 @@ class Commit:
         return self.sut_class
 
     def check_validate_scenario(self, base, left, right):
-        if (base[:7] == left or base[:7] == right):
+        if base[:7] == left or base[:7] == right:
             return False
         else:
             return True

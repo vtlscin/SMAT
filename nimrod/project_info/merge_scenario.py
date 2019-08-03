@@ -1,6 +1,7 @@
 from nimrod.project_info.commit import Commit
 import csv
 
+
 class MergeScenario:
 
     def __init__(self, path_local_clone, path_merge_scenarios):
