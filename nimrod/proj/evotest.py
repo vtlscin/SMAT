@@ -1,6 +1,7 @@
 import os
 import shutil
 import time
+import re
 import csv
 import threading
 import subprocess
@@ -19,7 +20,12 @@ from nimrod.tools.java import Java
 from nimrod.tools.maven import Maven
 from nimrod.tests.utils import get_config
 from nimrod.project_info.merge_scenario import MergeScenario
+from tempfile import mkstemp
+import fileinput
 
+from shutil import move
+
+from os import fdopen, remove
 NimrodResult = namedtuple('NimrodResult', ['maybe_equivalent', 'not_equivalent',
                                            'coverage', 'differential',
                                            'timeout', 'test_tool', 'is_equal_coverage'])
@@ -94,18 +100,64 @@ class evotest:
 
     def write_output_csv(self, output_base, output_left, output_merge, scenario):
 
-        output = [scenario.get_merge_hash(), "False"]
+        output = [self.project.get_project_name(), scenario.get_merge_hash(), "False"]
         if output_base[1] and not output_left[1] and output_merge[1]:
-            output = [scenario.get_merge_hash(), "True"]
+            output = [self.project.get_project_name(), scenario.get_merge_hash(), "True"]
 
         with open(self.path_output_csv, 'a') as fd:
             writer = csv.writer(fd)
             writer.writerow(output)
 
 
+    def set_method_public(self, file):
+
+        for line in fileinput.input(file, inplace=1):
+            if re.search(r'(protected|static|\s) +[\w\<\>\[\]]+\s+(\w+) *\([^\)]*\) *(\{?|[^;])', line):
+                print(line.replace("protected", "public").rstrip())
+            elif re.search(r'(private|static|\s) +[\w\<\>\[\]]+\s+(\w+) *\([^\)]*\) *(\{?|[^;])', line):
+                print(line.replace("private", "public").rstrip())
+            else:
+                print(line.rstrip())
+
+        #a = "a"
+
+
+        ##fout = open("b.java", "wt")
+        #
+        #with open(teste, 'r') as f:
+        #    for line in f:
+        #        fout.write(line.replace("private", "public"))
+                #if re.search(r'(public|protected|private|static|\s) +[\w\<\>\[\]]+\s+(\w+) *\([^\)]*\) *(\{?|[^;])', line):
+                 #   nl = re.sub(line, "public", line)
+                 #   print(nl);
+        #print(content)
+        #content_new = re.sub('(\w{2})/(\d{2})/(\d{4})', r'\1-\2-\3', content)
+
+    def add_default_constructor(self,file):
+        nl = False
+        for line in fileinput.input(file, inplace=1):
+            if re.search("(((|public|final|abstract|private|static|protected)(\\s+))?(class)(\\s+)(\\w+)(<.*>)?(\\s+extends\\s+\\w+)?(<.*>)?(\\s+implements\\s+)?(.*)?(<.*>)?(\\s*))\\{$", line):
+                print(line.rstrip()+"\npublic class Ball(){}\n")
+            else:
+                print(line.rstrip())
+
+        #a = "a"
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
 
     evo = evotest()
+    evo.add_default_constructor("/home/jprm/Documents/IC/nimrod-hunor/nimrod/proj/Ball.java")
+
+
+
+'''
     merge = MergeScenario(evo.project.get_path_local_project, evo.path_hash_csv)
     merge_scenarios = merge.get_merge_scenarios()
 
@@ -158,3 +210,4 @@ if __name__ == '__main__':
         print(test_result2)
         print(test_result3)
         evo.write_output_csv(test_result, test_result2, test_result3, scenario)
+'''
