@@ -39,6 +39,7 @@ class evotest:
         self.dRegCp = None  # base
         self.classes_dir = None  # left
         self.mergeDir = None  # merge
+
         self.evosuite_diff_params = None
         self.suite_evosuite_diff = None
 
@@ -69,13 +70,21 @@ class evotest:
         res = junit.run_with_mutant(self.suite_evosuite_diff, sut_class, mutant_dir)
         return res
 
-    def analyze_commits(self, scenario):
+    def compile_commits(self, scenario):
 
         data = [(scenario.get_base_hash(), "base"), (scenario.get_left_hash(), "left"),
                 (scenario.get_right_hash(), "right"), (scenario.get_merge_hash(), "merge")]
         self.sut_class = scenario.get_sut_class()
         for hash in data:
+            self.project.checkout_on_commit(".")
+
             self.project.checkout_on_commit(hash[0])
+
+            self.project.checkout_on_commit(".")
+            self.set_method_public("/home/ines/Documents/ic/Project-stuff/example-project-evosuite/src/main/java/br/com/Ball.java")
+            self.add_default_constructor("/home/ines/Documents/ic/Project-stuff/example-project-evosuite/src/main/java/br/com/Ball.java")
+
+
             self.maven.compile(self.project.get_path_local_project(), 120, clean=True, install=True)
             self.maven.save_dependencies(self.project.get_path_local_project())
             dst = self.projects_folder + self.project.get_project_name() + "/" + data[3][0] + "/" + hash[1]
@@ -134,10 +143,12 @@ class evotest:
         #content_new = re.sub('(\w{2})/(\d{2})/(\d{4})', r'\1-\2-\3', content)
 
     def add_default_constructor(self,file):
-        nl = False
         for line in fileinput.input(file, inplace=1):
             if re.search("(((|public|final|abstract|private|static|protected)(\\s+))?(class)(\\s+)(\\w+)(<.*>)?(\\s+extends\\s+\\w+)?(<.*>)?(\\s+implements\\s+)?(.*)?(<.*>)?(\\s*))\\{$", line):
-                print(line.rstrip()+"\npublic class Ball(){}\n")
+                print(line.rstrip()+"\npublic Ball(){}\n")
+
+            elif re.search(".*?private final.*", line):
+                print(line.replace("private final", "private").rstrip())
             else:
                 print(line.rstrip())
 
@@ -153,16 +164,14 @@ class evotest:
 if __name__ == '__main__':
 
     evo = evotest()
-    evo.add_default_constructor("/home/jprm/Documents/IC/nimrod-hunor/nimrod/proj/Ball.java")
+    #evo.add_default_constructor("/home/ines/Documents/ic/Project-stuff/example-project-evosuite/src/main/java/br/com/Ball.java")
 
 
-
-'''
     merge = MergeScenario(evo.project.get_path_local_project, evo.path_hash_csv)
     merge_scenarios = merge.get_merge_scenarios()
 
     for scenario in merge_scenarios:
-        evo.analyze_commits(scenario)
+        evo.compile_commits(scenario)
 
         evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
         evo.classes_dir = evo.generate_dependencies_path(scenario, "left")
@@ -210,4 +219,3 @@ if __name__ == '__main__':
         print(test_result2)
         print(test_result3)
         evo.write_output_csv(test_result, test_result2, test_result3, scenario)
-'''
