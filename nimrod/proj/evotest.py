@@ -71,19 +71,16 @@ class evotest:
         return res
 
     def compile_commits(self, scenario):
-
+        java_file = self.find_java_files(self.project.get_path_local_project())
         data = [(scenario.get_base_hash(), "base"), (scenario.get_left_hash(), "left"),
                 (scenario.get_right_hash(), "right"), (scenario.get_merge_hash(), "merge")]
         self.sut_class = scenario.get_sut_class()
         for hash in data:
             self.project.checkout_on_commit(".")
-
             self.project.checkout_on_commit(hash[0])
-
             self.project.checkout_on_commit(".")
-            self.set_method_public("/home/ines/Documents/ic/Project-stuff/example-project-evosuite/src/main/java/br/com/Ball.java")
-            self.add_default_constructor("/home/ines/Documents/ic/Project-stuff/example-project-evosuite/src/main/java/br/com/Ball.java")
-
+            self.set_method_public(java_file)
+            self.add_default_constructor(java_file)
 
             self.maven.compile(self.project.get_path_local_project(), 120, clean=True, install=True)
             self.maven.save_dependencies(self.project.get_path_local_project())
@@ -117,8 +114,8 @@ class evotest:
             writer = csv.writer(fd)
             writer.writerow(output)
 
-
-    def set_method_public(self, file):
+    @staticmethod
+    def set_method_public(file):
 
         for line in fileinput.input(file, inplace=1):
             if re.search(r'(protected|static|\s) +[\w\<\>\[\]]+\s+(\w+) *\([^\)]*\) *(\{?|[^;])', line):
@@ -128,21 +125,8 @@ class evotest:
             else:
                 print(line.rstrip())
 
-        #a = "a"
-
-
-        ##fout = open("b.java", "wt")
-        #
-        #with open(teste, 'r') as f:
-        #    for line in f:
-        #        fout.write(line.replace("private", "public"))
-                #if re.search(r'(public|protected|private|static|\s) +[\w\<\>\[\]]+\s+(\w+) *\([^\)]*\) *(\{?|[^;])', line):
-                 #   nl = re.sub(line, "public", line)
-                 #   print(nl);
-        #print(content)
-        #content_new = re.sub('(\w{2})/(\d{2})/(\d{4})', r'\1-\2-\3', content)
-
-    def add_default_constructor(self,file):
+    @staticmethod
+    def add_default_constructor(file):
         for line in fileinput.input(file, inplace=1):
             if re.search("(((|public|final|abstract|private|static|protected)(\\s+))?(class)(\\s+)(\\w+)(<.*>)?(\\s+extends\\s+\\w+)?(<.*>)?(\\s+implements\\s+)?(.*)?(<.*>)?(\\s*))\\{$", line):
                 print(line.rstrip()+"\npublic Ball(){}\n")
@@ -152,10 +136,14 @@ class evotest:
             else:
                 print(line.rstrip())
 
-        #a = "a"
-
-
-
+    @staticmethod
+    def find_java_files(dir_path):
+        #dir_path = self.project.get_path_local_project()
+        #dir_path = os.path.dirname(os.path.realpath(__file__))
+        for root, dirs, files in os.walk(dir_path):
+            for file in files:
+                if file.endswith('.java') and ("Test" not in str(file)):
+                    return root + '/' + str(file)
 
 
 
@@ -165,7 +153,7 @@ if __name__ == '__main__':
 
     evo = evotest()
     #evo.add_default_constructor("/home/ines/Documents/ic/Project-stuff/example-project-evosuite/src/main/java/br/com/Ball.java")
-
+    java_file = evo.find_java_files(evo.project.get_path_local_project())
 
     merge = MergeScenario(evo.project.get_path_local_project, evo.path_hash_csv)
     merge_scenarios = merge.get_merge_scenarios()
