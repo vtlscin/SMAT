@@ -43,7 +43,11 @@ class evotest:
         self.evosuite_diff_params = None
         self.suite_evosuite_diff = None
 
+        self.suite_evosuite = None
+        self.evosuite_params = None
+
         self.sut_class = None
+
         self.java = Java(self.config['java_home'])
         self.maven = Maven(self.java, self.config['maven_home'])
         self.tests_dst = self.config["tests_dst"]
@@ -63,6 +67,28 @@ class evotest:
         )
         self.suite_evosuite_diff = evosuite.generate_differential(self.dRegCp)
         return self.suite_evosuite_diff
+
+    def gen_evosuite(self, scenario):
+        evosuite = Evosuite(
+            java=self.java,
+            classpath=self.classes_dir,
+            tests_src=self.tests_dst + '/' + self.project.get_project_name() + '/' + scenario.get_merge_hash(),
+            sut_class=self.sut_class,
+            params=self.evosuite_params
+        )
+        # suite = evosuite.generate()
+        safira = Safira(java=self.java, classes_dir=self.classes_dir, mutant_dir=self.dRegCp)
+        self.suite_evosuite = evosuite.generate_with_impact_analysis(safira)
+        if "Simulator" in self.sut_class:
+            import distutils.dir_util
+            distutils.dir_util.copy_tree("./config/", evosuite.suite_dir + "/config/")
+
+        return self.suite_evosuite
+
+    def try_evosuite(self, classes_dir, sut_class, mutant_dir):
+        junit = JUnit(java=self.java, classpath=classes_dir)
+        return (junit.run_with_mutant(self.suite_evosuite, sut_class, mutant_dir)
+                if self.suite_evosuite else None)
 
     def try_evosuite_diff(self, classes_dir, sut_class, mutant_dir):
 
@@ -165,45 +191,38 @@ if __name__ == '__main__':
         evo.classes_dir = evo.generate_dependencies_path(scenario, "left")
         evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
 
-        # thread_evosuite_diff = threading.Thread(target=evo.gen_evosuite_diff)
-
-        print("waiting analisys finish")
-        evo.gen_evosuite_diff(scenario)
-
-        # thread_evosuite_diff.start()
-        # thread_evosuite_diff.join()
-
-        print("ended")
-
-        # time.sleep(5)
-
-        test_result = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.dRegCp)  # fail on base
-
-        # time.sleep(4)
-
-        test_result2 = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
-
-        # time.sleep(4)
-
-        test_result3 = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.mergeDir)  # fail on merge
-
-        # test_result = evo.try_evosuite_diff(evo.dRegCp, evo.sut_class, evo.classes_dir) #ok
-
-        # test_result = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.classes_dir) #ok
-
-        # test_result = evo.try_evosuite_diff(evo.dRegCp, evo.sut_class, evo.dRegCp) #notok ----
-
-        # test_result = evo.try_evosuite_diff(evo.mergeDir, evo.sut_class, evo.mergeDir) #ok
-
-        # test_result = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.mergeDir)#ok
-
-        # test_result = evo.try_evosuite_diff(evo.dRegCp, evo.sut_class, evo.mergeDir)#ok
-
-        # test_result = evo.try_evosuite_diff(evo.mergeDir, evo.sut_class, evo.dRegCp)#notok ----
-
-        # test_result = evo.try_evosuite_diff(evo.mergeDir, evo.sut_class, evo.classes_dir)#ok
-
+        print(evo.gen_evosuite(scenario))
+        test_result = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.dRegCp)  # fail on base - passing tests 0 2 7
+        test_result2 = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
+        test_result3 = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.mergeDir)  # fail on merge - passing tests 0 2 7
         print(test_result)
         print(test_result2)
         print(test_result3)
-        evo.write_output_csv(test_result, test_result2, test_result3, scenario)
+        '''
+
+        cases = ["left", "right"]
+
+        for case in cases:
+            evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
+            evo.classes_dir = evo.generate_dependencies_path(scenario, case)
+            evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
+
+            # thread_evosuite_diff = threading.Thread(target=evo.gen_evosuite_diff)
+            print("waiting analisys finish")
+            evo.gen_evosuite_diff(scenario)
+            # thread_evosuite_diff.start()
+            # thread_evosuite_diff.join()
+
+            print("ended")
+
+            test_result = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.dRegCp)  # fail on base
+            test_result2 = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
+            test_result3 = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.mergeDir)  # fail on merge
+
+            print(test_result)
+            print(test_result2)
+            print(test_result3)
+            evo.write_output_csv(test_result, test_result2, test_result3, scenario)
+'''
+
+
