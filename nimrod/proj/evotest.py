@@ -46,6 +46,9 @@ class evotest:
         self.suite_evosuite = None
         self.evosuite_params = None
 
+        self.suite_randoop = None
+        self.randoop_params = None
+
         self.sut_class = None
 
         self.java = Java(self.config['java_home'])
@@ -85,6 +88,24 @@ class evotest:
 
         return self.suite_evosuite
 
+    def gen_randoop(self, scenario):
+        randoop = Randoop(
+            java=self.java,
+            classpath=self.classes_dir,
+            tests_src=self.tests_dst + '/' + self.project.get_project_name() + '/' + scenario.get_merge_hash(),
+            sut_class=self.sut_class,
+            params=self.randoop_params
+        )
+        safira = Safira(java=self.java, classes_dir=self.classes_dir, mutant_dir=self.dRegCp)
+        if "Bisect" in self.sut_class:
+            self.suite_randoop = randoop.generate()
+        else:
+            self.suite_randoop = randoop.generate_with_impact_analysis(safira)
+            if "Simulator" in self.sut_class:
+                import distutils.dir_util
+                distutils.dir_util.copy_tree("./config/", randoop.suite_dir + "/config/")
+        return self.suite_randoop
+
     def try_evosuite(self, classes_dir, sut_class, mutant_dir):
         junit = JUnit(java=self.java, classpath=classes_dir)
         return (junit.run_with_mutant(self.suite_evosuite, sut_class, mutant_dir)
@@ -95,6 +116,11 @@ class evotest:
         junit = JUnit(java=self.java, classpath=classes_dir)
         res = junit.run_with_mutant(self.suite_evosuite_diff, sut_class, mutant_dir)
         return res
+
+    def try_randoop(self, classes_dir, sut_class, mutant_dir):
+        junit = JUnit(java=self.java, classpath=classes_dir)
+        return (junit.run_with_mutant(self.suite_randoop, sut_class, mutant_dir)
+                if self.suite_randoop else None)
 
     def compile_commits(self, scenario):
         java_file = self.find_java_files(self.project.get_path_local_project())
@@ -155,7 +181,7 @@ class evotest:
     def add_default_constructor(file):
         for line in fileinput.input(file, inplace=1):
             if re.search("(((|public|final|abstract|private|static|protected)(\\s+))?(class)(\\s+)(\\w+)(<.*>)?(\\s+extends\\s+\\w+)?(<.*>)?(\\s+implements\\s+)?(.*)?(<.*>)?(\\s*))\\{$", line):
-                print(line.rstrip()+"\npublic Ball(){}\n")
+                print(line.rstrip()+"\npublic Ball(){}\n") #ajust this later
 
             elif re.search(".*?private final.*", line):
                 print(line.replace("private final", "private").rstrip())
@@ -185,8 +211,24 @@ if __name__ == '__main__':
     merge_scenarios = merge.get_merge_scenarios()
 
     for scenario in merge_scenarios:
+
         evo.compile_commits(scenario)
 
+        evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
+        evo.classes_dir = evo.generate_dependencies_path(scenario, "left")
+        evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
+
+        print(evo.gen_randoop(scenario))
+
+        test_result = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.dRegCp)
+        test_result2 = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.classes_dir)
+        test_result3 = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.mergeDir)
+        print(test_result)
+        print(test_result2)
+        print(test_result3)
+
+'''
+    ###evosuite
         evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
         evo.classes_dir = evo.generate_dependencies_path(scenario, "left")
         evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
@@ -198,8 +240,15 @@ if __name__ == '__main__':
         print(test_result)
         print(test_result2)
         print(test_result3)
-        '''
-
+        
+        
+        
+        
+        
+        
+        
+        #######evosuite differencial######3
+        
         cases = ["left", "right"]
 
         for case in cases:
