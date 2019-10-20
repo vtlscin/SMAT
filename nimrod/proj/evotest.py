@@ -166,6 +166,16 @@ class evotest:
             writer = csv.writer(fd)
             writer.writerow(output)
 
+    def write_output_csv_intersec(self, output_base, output_left, output_merge, scenario):
+
+        output = [self.project.get_project_name(), scenario.get_merge_hash(), "False"]
+        if len(output_base[2].intersection(output_merge[2])) > 0 and not output_left[1]:
+            output = [self.project.get_project_name(), scenario.get_merge_hash(), "True"]
+
+        with open(self.path_output_csv, 'a') as fd:
+            writer = csv.writer(fd)
+            writer.writerow(output)
+
     @staticmethod
     def set_method_public(file):
 
@@ -213,7 +223,7 @@ if __name__ == '__main__':
     for scenario in merge_scenarios:
 
         evo.compile_commits(scenario)
-
+        '''
         evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
         evo.classes_dir = evo.generate_dependencies_path(scenario, "left")
         evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
@@ -226,8 +236,8 @@ if __name__ == '__main__':
         print(test_result)
         print(test_result2)
         print(test_result3)
-
 '''
+
     ###evosuite
         evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
         evo.classes_dir = evo.generate_dependencies_path(scenario, "left")
@@ -240,13 +250,13 @@ if __name__ == '__main__':
         print(test_result)
         print(test_result2)
         print(test_result3)
-        
-        
-        
-        
-        
-        
-        
+
+        shilol = test_result[2].intersection(test_result3[2])
+        print(shilol, len(shilol))
+
+        evo.write_output_csv_intersec(test_result, test_result2, test_result3, scenario)
+
+'''        
         #######evosuite differencial######3
         
         cases = ["left", "right"]
