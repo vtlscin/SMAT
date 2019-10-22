@@ -207,8 +207,21 @@ class evotest:
                 if file.endswith('.java') and ("Test" not in str(file)):
                     return root + '/' + str(file)
 
+    def exec_randoop(self, evo,scenario):
+        evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
+        evo.classes_dir = evo.generate_dependencies_path(scenario, "left")
+        evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
 
+        evo.gen_randoop(scenario)
 
+        test_result_base = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.dRegCp)
+        test_result_left = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.classes_dir)
+        test_result_merge = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.mergeDir)
+        print(test_result_base)
+        print(test_result_left)
+        print(test_result_merge)
+
+        evo.write_output_csv_intersec(test_result_base, test_result_left, test_result_merge, scenario)
 
 
 if __name__ == '__main__':
@@ -223,20 +236,8 @@ if __name__ == '__main__':
     for scenario in merge_scenarios:
 
         evo.compile_commits(scenario)
-        '''
-        evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
-        evo.classes_dir = evo.generate_dependencies_path(scenario, "left")
-        evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
 
-        print(evo.gen_randoop(scenario))
-
-        test_result = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.dRegCp)
-        test_result2 = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.classes_dir)
-        test_result3 = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.mergeDir)
-        print(test_result)
-        print(test_result2)
-        print(test_result3)
-'''
+        result_randoop = evo.exec_randoop(evo, scenario)
 
     ###evosuite
         evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
@@ -251,8 +252,6 @@ if __name__ == '__main__':
         print(test_result2)
         print(test_result3)
 
-        shilol = test_result[2].intersection(test_result3[2])
-        print(shilol, len(shilol))
 
         evo.write_output_csv_intersec(test_result, test_result2, test_result3, scenario)
 
