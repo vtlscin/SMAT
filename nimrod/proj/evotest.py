@@ -166,6 +166,15 @@ class evotest:
             writer = csv.writer(fd)
             writer.writerow(output)
 
+    def write_output_results(self, scenario, result_evosuite, result_evosuite_diff, result_randoop):
+
+        output = [self.project.get_project_name(), scenario.get_merge_hash(), result_evosuite, result_evosuite_diff, result_randoop]
+
+        with open(self.path_output_csv, 'a') as fd:
+            writer = csv.writer(fd)
+            writer.writerow(output)
+
+
     def write_output_csv_intersec(self, output_base, output_left, output_merge, scenario):
 
         output = [self.project.get_project_name(), scenario.get_merge_hash(), "False"]
@@ -208,20 +217,86 @@ class evotest:
                     return root + '/' + str(file)
 
     def exec_randoop(self, evo,scenario):
-        evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
-        evo.classes_dir = evo.generate_dependencies_path(scenario, "left")
-        evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
+        cases = ["left", "right"]
+        conflictLeft = False
+        conflictRight = False
+        for case in cases:
+            evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
+            evo.classes_dir = evo.generate_dependencies_path(scenario, case)
+            evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
 
-        evo.gen_randoop(scenario)
+            evo.gen_randoop(scenario)
 
-        test_result_base = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.dRegCp)
-        test_result_left = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.classes_dir)
-        test_result_merge = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.mergeDir)
-        print(test_result_base)
-        print(test_result_left)
-        print(test_result_merge)
+            test_result_base = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.dRegCp)
+            test_result_parent = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.classes_dir)
+            test_result_merge = evo.try_randoop(evo.classes_dir, evo.sut_class, evo.mergeDir)
+            print(test_result_base)
+            print(test_result_parent)
+            print(test_result_merge)
 
-        evo.write_output_csv_intersec(test_result_base, test_result_left, test_result_merge, scenario)
+            evo.write_output_csv_intersec(test_result_base, test_result_parent, test_result_merge, scenario)
+            if len(test_result_base[2].intersection(test_result_merge[2])) > 0 and not test_result_parent[1]:
+                if case == "left":
+                    conflictLeft = True
+                else:
+                    conflictRight = True
+
+        return conflictLeft or conflictRight
+
+    def exec_evosuite(self, evo,scenario):
+        cases = ["left", "right"]
+        conflictLeft = False
+        conflictRight = False
+        for case in cases:
+            evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
+            evo.classes_dir = evo.generate_dependencies_path(scenario, case)
+            evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
+
+            evo.gen_evosuite(scenario)
+            test_result_base = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.dRegCp)  # fail on base - passing tests 0 2 7
+            test_result_parent = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
+            test_result_merge = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.mergeDir)  # fail on merge - passing tests 0 2 7
+            print(test_result_base)
+            print(test_result_parent)
+            print(test_result_merge)
+
+            if len(test_result_base[2].intersection(test_result_merge[2])) > 0 and not test_result_parent[1]:
+                if case == "left":
+                    conflictLeft = True
+                else:
+                    conflictRight = True
+
+            return conflictLeft or conflictRight
+
+    def exec_evosuite_diff(self, evo, scenario):
+        cases = ["left", "right"]
+        conflictLeft = False
+        conflictRight = False
+        for case in cases:
+            evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
+            evo.classes_dir = evo.generate_dependencies_path(scenario, case)
+            evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
+
+            # thread_evosuite_diff = threading.Thread(target=evo.gen_evosuite_diff)
+            evo.gen_evosuite_diff(scenario)
+            # thread_evosuite_diff.start()
+            # thread_evosuite_diff.join()
+
+            test_result_base = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.dRegCp)  # fail on base
+            test_result_parent = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
+            test_result_merge = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.mergeDir)  # fail on merge
+
+            print(test_result_base)
+            print(test_result_parent)
+            print(test_result_merge)
+
+            if len(test_result_base[2].intersection(test_result_merge[2])) > 0 and not test_result_parent[1]:
+                if case == "left":
+                    conflictLeft = True
+                else:
+                    conflictRight = True
+
+            return conflictLeft or conflictRight
 
 
 if __name__ == '__main__':
@@ -236,29 +311,39 @@ if __name__ == '__main__':
     for scenario in merge_scenarios:
 
         evo.compile_commits(scenario)
-
         result_randoop = evo.exec_randoop(evo, scenario)
-
-    ###evosuite
-        evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
-        evo.classes_dir = evo.generate_dependencies_path(scenario, "left")
-        evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
-
-        print(evo.gen_evosuite(scenario))
-        test_result = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.dRegCp)  # fail on base - passing tests 0 2 7
-        test_result2 = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
-        test_result3 = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.mergeDir)  # fail on merge - passing tests 0 2 7
-        print(test_result)
-        print(test_result2)
-        print(test_result3)
+        result_evosuite = evo.exec_evosuite(evo, scenario)
+        result_evosuite_diff = evo.exec_evosuite_diff(evo, scenario)
+        evo.write_output_results(scenario,result_evosuite, result_evosuite_diff, result_randoop)
 
 
-        evo.write_output_csv_intersec(test_result, test_result2, test_result3, scenario)
 
-'''        
+
+
+
+
+'''
+        for case in cases:
+
+        ###evosuite
+            evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
+            evo.classes_dir = evo.generate_dependencies_path(scenario, case)
+            evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
+
+            print(evo.gen_evosuite(scenario))
+            test_result = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.dRegCp)  # fail on base - passing tests 0 2 7
+            test_result2 = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
+            test_result3 = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.mergeDir)  # fail on merge - passing tests 0 2 7
+            print(test_result)
+            print(test_result2)
+            print(test_result3)
+
+
+            evo.write_output_csv_intersec(test_result, test_result2, test_result3, scenario)
+
+
         #######evosuite differencial######3
         
-        cases = ["left", "right"]
 
         for case in cases:
             evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
@@ -281,6 +366,7 @@ if __name__ == '__main__':
             print(test_result2)
             print(test_result3)
             evo.write_output_csv(test_result, test_result2, test_result3, scenario)
+
+
+
 '''
-
-
