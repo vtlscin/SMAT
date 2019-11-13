@@ -1,32 +1,15 @@
-import os
-import shutil
-import time
-import re
 import csv
-import threading
-import subprocess
 from nimrod.tools.randoop import Randoop
-from nimrod.tools.mujava import MuJava
-from nimrod.mutant import Mutant
 from nimrod.tools.safira import Safira
 from nimrod.tools.junit import JUnit, JUnitResult, Coverage
 from nimrod.tools.evosuite import Evosuite
-from nimrod.utils import package_to_dir
-from nimrod.project_info import commit, git_project, merge_scenario, report_directory
 from collections import namedtuple
 from nimrod.project_info.git_project import GitProject
-import shutil
-from nimrod.tools.java import Java
-from nimrod.tools.maven import Maven
 from nimrod.tests.utils import get_config
 from nimrod.project_info.merge_scenario import MergeScenario
 from nimrod.report.output_report import Output_report
-from tempfile import mkstemp
-import fileinput
+from nimrod.proj.project_dependencies import Project_dependecies
 
-from shutil import move
-
-from os import fdopen, remove
 NimrodResult = namedtuple('NimrodResult', ['maybe_equivalent', 'not_equivalent',
                                            'coverage', 'differential',
                                            'timeout', 'test_tool', 'is_equal_coverage'])
@@ -35,11 +18,8 @@ NimrodResult = namedtuple('NimrodResult', ['maybe_equivalent', 'not_equivalent',
 class evotest:
 
     def __init__(self, path_local_project="", path_local_module_analysis="", project_name=""):
-
-        self.config = get_config()
-        self.dRegCp = None  # base
-        self.classes_dir = None  # left
-        self.mergeDir = None  # merge
+        config = get_config()
+        self.project_dep = Project_dependecies(config, path_local_project, path_local_module_analysis, project_name)
 
         self.evosuite_diff_params = None
         self.suite_evosuite_diff = None
@@ -50,16 +30,7 @@ class evotest:
         self.suite_randoop = None
         self.randoop_params = None
 
-        self.sut_class = None
-
-        self.java = Java(self.config['java_home'])
-        self.maven = Maven(self.java, self.config['maven_home'])
-        self.tests_dst = self.config["tests_dst"]
-        self.project = GitProject(path_local_project, path_local_module_analysis, project_name)
-        self.projects_folder = self.config["projects_folder"]
-        self.path_hash_csv = self.config["path_hash_csv"]
-        self.path_output_csv = self.config["path_output_csv"]
-        self.output_report = Output_report(self.config["path_output_csv"])
+        self.output_report = Output_report(config["path_output_csv"])
 
     def set_git_project(self, path):
         self.project = GitProject(path)
@@ -67,27 +38,27 @@ class evotest:
     def gen_evosuite_diff(self, scenario):
 
         evosuite = Evosuite(
-            java=self.java,
-            classpath=self.classes_dir,
-            sut_class=self.sut_class,
+            java=self.project_dep.java,
+            classpath=self.project_dep.classes_dir,
+            sut_class=self.project_dep.sut_class,
             params=self.evosuite_diff_params,
-            tests_src=self.tests_dst + '/' + self.project.get_project_name() + '/' + scenario.merge_scenario.get_merge_hash()
+            tests_src=self.project_dep.tests_dst + '/' + self.project_dep.project.get_project_name() + '/' + scenario.merge_scenario.get_merge_hash()
         )
-        self.suite_evosuite_diff = evosuite.generate_differential(self.dRegCp)
+        self.suite_evosuite_diff = evosuite.generate_differential(self.project_dep.dRegCp)
         return self.suite_evosuite_diff
 
     def gen_evosuite(self, scenario):
         evosuite = Evosuite(
-            java=self.java,
-            classpath=self.classes_dir,
-            tests_src=self.tests_dst + '/' + self.project.get_project_name() + '/' + scenario.merge_scenario.get_merge_hash(),
-            sut_class=self.sut_class,
+            java=self.project_dep.java,
+            classpath=self.project_dep.classes_dir,
+            tests_src=self.project_dep.tests_dst + '/' + self.project_dep.project.get_project_name() + '/' + scenario.merge_scenario.get_merge_hash(),
+            sut_class=self.project_dep.sut_class,
             params=self.evosuite_params
         )
         # suite = evosuite.generate()
-        safira = Safira(java=self.java, classes_dir=self.classes_dir, mutant_dir=self.dRegCp)
+        safira = Safira(java=self.project_dep.java, classes_dir=self.project_dep.classes_dir, mutant_dir=self.project_dep.dRegCp)
         self.suite_evosuite = evosuite.generate_with_impact_analysis(safira)
-        if "Simulator" in self.sut_class:
+        if "Simulator" in self.project_dep.sut_class:
             import distutils.dir_util
             distutils.dir_util.copy_tree("./config/", evosuite.suite_dir + "/config/")
 
@@ -96,12 +67,12 @@ class evotest:
     def gen_randoop(self, scenario):
         randoop = Randoop(
             java=self.java,
-            classpath=self.classes_dir,
+            classpath=self.project_dep.classes_dir,
             tests_src=self.tests_dst + '/' + self.project.get_project_name() + '/' + scenario.merge_scenario.get_merge_hash(),
             sut_class=self.sut_class,
             params=self.randoop_params
         )
-        safira = Safira(java=self.java, classes_dir=self.classes_dir, mutant_dir=self.dRegCp)
+        safira = Safira(java=self.java, classes_dir=self.project_dep.classes_dir, mutant_dir=self.project_dep.dRegCp)
         if "Bisect" in self.sut_class:
             self.suite_randoop = randoop.generate()
         else:
@@ -112,13 +83,13 @@ class evotest:
         return self.suite_randoop
 
     def try_evosuite(self, classes_dir, sut_class, mutant_dir):
-        junit = JUnit(java=self.java, classpath=classes_dir)
+        junit = JUnit(java=self.project_dep.java, classpath=classes_dir)
         return (junit.run_with_mutant(self.suite_evosuite, sut_class, mutant_dir)
                 if self.suite_evosuite else None)
 
     def try_evosuite_diff(self, classes_dir, sut_class, mutant_dir):
 
-        junit = JUnit(java=self.java, classpath=classes_dir)
+        junit = JUnit(java=self.project_dep.java, classpath=classes_dir)
         res = junit.run_with_mutant(self.suite_evosuite_diff, sut_class, mutant_dir)
         return res
 
@@ -126,75 +97,6 @@ class evotest:
         junit = JUnit(java=self.java, classpath=classes_dir)
         return (junit.run_with_mutant(self.suite_randoop, sut_class, mutant_dir)
                 if self.suite_randoop else None)
-
-    def compile_commits(self, scenario):
-        java_file = self.find_java_files(self.project.get_path_local_project(), scenario.merge_scenario.get_sut_class())
-        data = [(scenario.merge_scenario.get_base_hash(), "base"), (scenario.merge_scenario.get_left_hash(), "left"),
-                (scenario.merge_scenario.get_right_hash(), "right"), (scenario.merge_scenario.get_merge_hash(), "merge")]
-        self.sut_class = scenario.merge_scenario.get_sut_class()
-        for hash in data:
-            try:
-                self.project.checkout_on_commit(".")
-                self.project.checkout_on_commit(hash[0])
-                self.project.checkout_on_commit(".")
-                self.set_method_public(java_file)
-                #self.add_default_constructor(java_file)
-
-                self.maven.compile(self.project.get_path_local_project(), 120, clean=True, install=True)
-                self.maven.save_dependencies(self.project.get_path_local_project())
-                dst = self.projects_folder + self.project.get_project_name() + "/" + data[3][0] + "/" + hash[1]
-                if os.path.exists(dst):
-                    shutil.rmtree(dst)
-
-                shutil.copytree(self.project.get_path_local_module_analysis(), dst)
-            except:
-                print ("The commit "+str(hash) +" was not compilable")
-
-    def generate_dependencies_path(self, scenario, commit_type):
-
-        project_folder = self.projects_folder + self.project.get_project_name() + "/" + scenario.merge_scenario.get_merge_hash() + "/"
-        dependencies = [(x[0], x[2]) for x in os.walk(project_folder + commit_type + "/target/dependency/")]
-        dep_path = dependencies[0][0]
-        final_path = ""
-        print(dep_path)
-        for dependency in dependencies[0][1]:
-            final_path = final_path + dep_path + dependency + ":"
-
-        final_path = dep_path + ":" + final_path + project_folder + commit_type + "/target/classes/"
-
-        return final_path
-
-    @staticmethod
-    def set_method_public(file):
-
-        for line in fileinput.input(file, inplace=1):
-            if re.search(r'(protected|static|\s) +[\w\<\>\[\]]+\s+(\w+) *\([^\)]*\) *(\{?|[^;])', line):
-                print(line.replace("protected", "public").rstrip())
-            elif re.search(r'(private|static|\s) +[\w\<\>\[\]]+\s+(\w+) *\([^\)]*\) *(\{?|[^;])', line):
-                print(line.replace("private", "public").rstrip())
-            else:
-                print(line.rstrip())
-
-    @staticmethod
-    def add_default_constructor(file):
-        for line in fileinput.input(file, inplace=1):
-            if re.search("(((|public|final|abstract|private|static|protected)(\\s+))?(class)(\\s+)(\\w+)(<.*>)?(\\s+extends\\s+\\w+)?(<.*>)?(\\s+implements\\s+)?(.*)?(<.*>)?(\\s*))\\{$", line):
-                print(line.rstrip()+"\npublic Ball(){}\n") #ajust this later
-
-            elif re.search(".*?private final.*", line):
-                print(line.replace("private final", "private").rstrip())
-            else:
-                print(line.rstrip())
-
-    @staticmethod
-    def find_java_files(dir_path, sut_class):
-        #dir_path = self.project.get_path_local_project()
-        #dir_path = os.path.dirname(os.path.realpath(__file__))
-        class_name = sut_class.split('.')[-1]
-        for root, dirs, files in os.walk(dir_path):
-            for file in files:
-                if file.endswith('.java') and ("Test" not in str(file)) and (class_name in file):
-                    return root + '/' + str(file)
 
     def check_different_test_results_for_commit_pair(self, parent_one, parent_two, path_suite):
         if len(parent_one[2].difference(parent_two[2])) > 0:
@@ -263,15 +165,15 @@ class evotest:
 
         conflict_info = []
         try:
-            evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
-            evo.classes_dir = evo.generate_dependencies_path(scenario, parent)
-            evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
+            evo.project_dep.dRegCp = evo.project_dep.generate_dependencies_path(scenario, "base")
+            evo.project_dep.classes_dir = evo.project_dep.generate_dependencies_path(scenario, parent)
+            evo.project_dep.mergeDir = evo.project_dep.generate_dependencies_path(scenario, "merge")
 
             path_suite = evo.gen_evosuite(scenario)
 
-            test_result_base = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.dRegCp)  # fail on base - passing tests 0 2 7
-            test_result_parent = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
-            test_result_merge = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.mergeDir)  # fail on merge - passing tests 0 2 7
+            test_result_base = evo.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.dRegCp)  # fail on base - passing tests 0 2 7
+            test_result_parent = evo.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.classes_dir)  # pass on left
+            test_result_merge = evo.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.mergeDir)  # fail on merge - passing tests 0 2 7
 
             conflict_info.append(self.check_different_test_results_for_commit_pair(test_result_base, test_result_parent,path_suite))
             conflict_info.append(self.check_different_test_results_for_commit_pair(test_result_merge, test_result_parent,path_suite))
@@ -287,7 +189,7 @@ class evotest:
             evo.dRegCp = jarBase
             evo.classes_dir = jarParent
             evo.mergeDir = jarMerge
-            self.sut_class = scenario.merge_scenario.get_sut_class()
+            self.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
 
             conflict_info = self.exec_evosuite_all(scenario)
         except:
@@ -300,11 +202,11 @@ class evotest:
         try:
             path_suite = evo.gen_evosuite(scenario)
 
-            test_result_base = evo.try_evosuite(evo.classes_dir, evo.sut_class,
-                                                evo.dRegCp)  # fail on base - passing tests 0 2 7
-            test_result_parent = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
-            test_result_merge = evo.try_evosuite(evo.classes_dir, evo.sut_class,
-                                                 evo.mergeDir)  # fail on merge - passing tests 0 2 7
+            test_result_base = evo.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class,
+                                                evo.project_dep.dRegCp)  # fail on base - passing tests 0 2 7
+            test_result_parent = evo.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.classes_dir)  # pass on left
+            test_result_merge = evo.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class,
+                                                 evo.project_dep.mergeDir)  # fail on merge - passing tests 0 2 7
 
             conflict_info.append(
                 self.check_different_test_results_for_commit_pair(test_result_base, test_result_parent, path_suite))
@@ -321,9 +223,10 @@ class evotest:
     def exec_evosuite_diff(self, evo, scenario, parent):
         conflict_info = []
         try:
-            evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
-            evo.classes_dir = evo.generate_dependencies_path(scenario, parent)
-            evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
+            evo.project_dep.dRegCp = evo.project_dep.generate_dependencies_path(scenario, "base")
+            evo.project_dep.classes_dir = evo.project_dep.generate_dependencies_path(scenario, parent)
+            evo.project_dep.mergeDir = evo.project_dep.generate_dependencies_path(scenario, "merge")
+            self.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
 
             conflict_info = self.exec_evosuite_diff_all(scenario)
 
@@ -335,10 +238,10 @@ class evotest:
     def exec_evosuite_diff_jar(self, evo, scenario, jarBase, jarParent, jarMerge):
         conflict_info = []
         try:
-            evo.dRegCp = jarBase
-            evo.classes_dir = jarParent
-            evo.mergeDir = jarMerge
-            self.sut_class = scenario.merge_scenario.get_sut_class()
+            evo.project_dep.dRegCp = jarBase
+            evo.project_dep.classes_dir = jarParent
+            evo.project_dep.mergeDir = jarMerge
+            self.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
 
             conflict_info = self.exec_evosuite_diff_all(scenario)
 
@@ -352,9 +255,9 @@ class evotest:
         try:
             path_suite = evo.gen_evosuite_diff(scenario)
 
-            test_result_base = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.dRegCp)  # fail on base
-            test_result_parent = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
-            test_result_merge = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.mergeDir)  # fail on merge
+            test_result_base = evo.try_evosuite_diff(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.dRegCp)  # fail on base
+            test_result_parent = evo.try_evosuite_diff(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.classes_dir)  # pass on left
+            test_result_merge = evo.try_evosuite_diff(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.mergeDir)  # fail on merge
 
             conflict_info.append(
                 self.check_different_test_results_for_commit_pair(test_result_base, test_result_parent, path_suite))
@@ -383,20 +286,22 @@ if __name__ == '__main__':
                 result_evosuite_left = evo.exec_evosuite_jar(evo, merge, row[10], row[11], row[13])
                 result_evosuite_right = evo.exec_evosuite_jar(evo, merge, row[10], row[12], row[13])
 
-                evo.output_report.write_output_results(evo.project.get_project_name(), merge, "evosuite-diff", "left", result_evodiff_left)
-                evo.output_report.write_output_results(evo.project.get_project_name(),merge, "evosuite-diff", "right", result_evodiff_right)
-                evo.output_report.write_output_results(evo.project.get_project_name(),merge, "evosuite", "left", result_evosuite_left)
-                evo.output_report.write_output_results(evo.project.get_project_name(),merge, "evosuite", "right", result_evosuite_right)
+                evo.output_report.write_output_results(evo.project_dep.project.get_project_name(), merge, "evosuite-diff", "left", result_evodiff_left)
+                evo.output_report.write_output_results(evo.project_dep.project.get_project_name(),merge, "evosuite-diff", "right", result_evodiff_right)
+                evo.output_report.write_output_results(evo.project_dep.project.get_project_name(),merge, "evosuite", "left", result_evosuite_left)
+                evo.output_report.write_output_results(evo.project_dep.project.get_project_name(),merge, "evosuite", "right", result_evosuite_right)
 
             else:
                 evo = evotest(row[8], row[9], row[0])
-                merge = MergeScenario(evo.project.get_path_local_project, row)
-                evo.compile_commits(merge)
+                merge = MergeScenario(evo.project_dep.project.get_path_local_project, row)
+                evo.project_dep.compile_commits(merge)
 
                 result_evosuite_left = evo.exec_evosuite(evo, merge, "left")
                 result_evosuite_right = evo.exec_evosuite(evo, merge, "right")
                 result_evodiff_left = evo.exec_evosuite_diff(evo, merge, "left")
                 result_evodiff_right = evo.exec_evosuite_diff(evo, merge, "right")
 
-                evo.output_report.write_output_results(evo.project.get_project_name(), merge, "evosuite-diff", "left", result_evodiff_left)
-                evo.output_report.write_output_results(evo.project.get_project_name(), merge, "evosuite-diff", "right", result_evodiff_right)
+                evo.output_report.write_output_results(evo.project_dep.project.get_project_name(), merge, "evosuite-diff", "left", result_evodiff_left)
+                evo.output_report.write_output_results(evo.project_dep.project.get_project_name(), merge, "evosuite-diff", "right", result_evodiff_right)
+                evo.output_report.write_output_results(evo.project_dep.project.get_project_name(), merge,"evosuite", "left", result_evosuite_left)
+                evo.output_report.write_output_results(evo.project_dep.project.get_project_name(), merge,"evosuite", "right", result_evosuite_right)
