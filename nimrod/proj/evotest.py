@@ -20,6 +20,7 @@ from nimrod.tools.java import Java
 from nimrod.tools.maven import Maven
 from nimrod.tests.utils import get_config
 from nimrod.project_info.merge_scenario import MergeScenario
+from nimrod.report.output_report import Output_report
 from tempfile import mkstemp
 import fileinput
 
@@ -33,7 +34,7 @@ NimrodResult = namedtuple('NimrodResult', ['maybe_equivalent', 'not_equivalent',
 
 class evotest:
 
-    def __init__(self, path_local_project, path_local_module_analysis, project_name):
+    def __init__(self, path_local_project="", path_local_module_analysis="", project_name=""):
 
         self.config = get_config()
         self.dRegCp = None  # base
@@ -58,6 +59,7 @@ class evotest:
         self.projects_folder = self.config["projects_folder"]
         self.path_hash_csv = self.config["path_hash_csv"]
         self.path_output_csv = self.config["path_output_csv"]
+        self.output_report = Output_report(self.config["path_output_csv"])
 
     def set_git_project(self, path):
         self.project = GitProject(path)
@@ -162,59 +164,6 @@ class evotest:
 
         return final_path
 
-    def write_output_csv(self, output_base, output_left, output_merge, scenario):
-
-        output = [self.project.get_project_name(), scenario.merge_scenario.get_merge_hash(), "False"]
-        if output_base[1] and not output_left[1] and output_merge[1]:
-            output = [self.project.get_project_name(), scenario.merge_scenario.get_merge_hash(), "True"]
-
-        with open(self.path_output_csv, 'a') as fd:
-            writer = csv.writer(fd)
-            writer.writerow(output)
-
-    def write_output_results(self, scenario, result_evosuite, result_evosuite_diff, result_randoop):
-
-        output = [self.project.get_project_name(), scenario.merge_scenario.get_merge_hash(), result_evosuite, result_evosuite_diff, result_randoop]
-
-        with open(self.path_output_csv, 'a') as fd:
-            writer = csv.writer(fd)
-            writer.writerow(output)
-
-    def write_each_result(self, output):
-        with open(self.path_output_csv, 'a') as fd:
-            writer = csv.writer(fd)
-            writer.writerow(output)
-
-    def write_output_results_new(self, scenario, tool, which_parent, criteria_validation):
-        if (os.path.isfile(self.path_output_csv) == False):
-            output = ["project_name", "merge_scenario", "tool", "evaluated_parent", "commit_pair", "criteria_validation", "failed_tests"]
-            with open('persons.csv', 'wb') as csvfile:
-                filewriter = csv.writer(csvfile, delimiter=',',
-                                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
-                filewriter.writerow(output) #
-                                            #self.write_each_result(output)
-
-        self.write_each_result(self.formate_output_line(scenario.merge_scenario.get_merge_hash(), tool, which_parent, "base-parent", criteria_validation, 0))
-        self.write_each_result(self.formate_output_line(scenario.merge_scenario.get_merge_hash(), tool, which_parent, "parent-merge", criteria_validation, 1))
-        self.write_each_result(self.formate_output_line(scenario.merge_scenario.get_merge_hash(), tool, which_parent, "base-merge", criteria_validation, 2))
-
-    def formate_output_line(self, merge, tool, which_parent, commit_pair, criteria_validation, id_information):
-        if (len(criteria_validation) > 0 and criteria_validation[id_information] != None):
-            return [self.project.get_project_name(), merge, tool, which_parent, commit_pair, criteria_validation[id_information][0], criteria_validation[id_information][1], criteria_validation[id_information][2]]
-        else:
-            return [self.project.get_project_name(), merge, tool,
-                                  which_parent, commit_pair, "NO_INFORMATION", "", ""]
-
-    def write_output_csv_intersec(self, output_base, output_left, output_merge, scenario, case):
-
-        output = [self.project.get_project_name(), case, scenario.merge_scenario.get_merge_hash(), "False"]
-        if len(output_base[2].intersection(output_merge[2])) > 0 and not output_left[1]:
-            output = [self.project.get_project_name(), scenario.merge_scenario.get_merge_hash(), "True"]
-
-        with open(self.path_output_csv, 'a') as fd:
-            writer = csv.writer(fd)
-            writer.writerow(output)
-
     @staticmethod
     def set_method_public(file):
 
@@ -254,7 +203,7 @@ class evotest:
             return [False, parent_one[2].difference(parent_two[2]), path_suite[1]]
 
     def check_different_test_results_for_merge_scenario(self, parent_one, parent_two, parent_tree, path_suite):
-        if parent_one[2].intersection(parent_tree[2]) != parent_two[2]:
+        if len(parent_one[2].intersection(parent_tree[2]).difference(parent_two[2])) > 0:
             return [True, parent_one[2].intersection(parent_tree[2]), path_suite[1]]
         else:
             return [False, parent_one[2].intersection(parent_tree[2]), path_suite[1]]
@@ -332,6 +281,43 @@ class evotest:
 
         return conflict_info
 
+    def exec_evosuite_jar(self, evo,scenario, jarBase, jarParent, jarMerge):
+        conflict_info = []
+        try:
+            evo.dRegCp = jarBase
+            evo.classes_dir = jarParent
+            evo.mergeDir = jarMerge
+            self.sut_class = scenario.merge_scenario.get_sut_class()
+
+            conflict_info = self.exec_evosuite_all(scenario)
+        except:
+            print("Some project versions could not be evaluated")
+
+        return conflict_info
+
+    def exec_evosuite_all(self, scenario):
+        conflict_info = []
+        try:
+            path_suite = evo.gen_evosuite(scenario)
+
+            test_result_base = evo.try_evosuite(evo.classes_dir, evo.sut_class,
+                                                evo.dRegCp)  # fail on base - passing tests 0 2 7
+            test_result_parent = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
+            test_result_merge = evo.try_evosuite(evo.classes_dir, evo.sut_class,
+                                                 evo.mergeDir)  # fail on merge - passing tests 0 2 7
+
+            conflict_info.append(
+                self.check_different_test_results_for_commit_pair(test_result_base, test_result_parent, path_suite))
+            conflict_info.append(
+                self.check_different_test_results_for_commit_pair(test_result_merge, test_result_parent, path_suite))
+            conflict_info.append(self.check_different_test_results_for_merge_scenario(test_result_base, test_result_parent,
+                                                                                      test_result_merge, path_suite))
+
+        except:
+            print("Some project versions could not be evaluated")
+
+        return conflict_info
+
     def exec_evosuite_diff(self, evo, scenario, parent):
         conflict_info = []
         try:
@@ -339,15 +325,43 @@ class evotest:
             evo.classes_dir = evo.generate_dependencies_path(scenario, parent)
             evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
 
+            conflict_info = self.exec_evosuite_diff_all(scenario)
+
+        except:
+            print("Some project versions could not be evaluated")
+
+        return conflict_info
+
+    def exec_evosuite_diff_jar(self, evo, scenario, jarBase, jarParent, jarMerge):
+        conflict_info = []
+        try:
+            evo.dRegCp = jarBase
+            evo.classes_dir = jarParent
+            evo.mergeDir = jarMerge
+            self.sut_class = scenario.merge_scenario.get_sut_class()
+
+            conflict_info = self.exec_evosuite_diff_all(scenario)
+
+        except:
+            print("Some project versions could not be evaluated")
+
+        return conflict_info
+
+    def exec_evosuite_diff_all(self, scenario):
+        conflict_info = []
+        try:
             path_suite = evo.gen_evosuite_diff(scenario)
 
             test_result_base = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.dRegCp)  # fail on base
             test_result_parent = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
             test_result_merge = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.mergeDir)  # fail on merge
 
-            conflict_info.append(self.check_different_test_results_for_commit_pair(test_result_base, test_result_parent, path_suite))
-            conflict_info.append(self.check_different_test_results_for_commit_pair(test_result_merge, test_result_parent, path_suite))
-            conflict_info.append(self.check_different_test_results_for_merge_scenario(test_result_base, test_result_parent, test_result_merge, path_suite))
+            conflict_info.append(
+                self.check_different_test_results_for_commit_pair(test_result_base, test_result_parent, path_suite))
+            conflict_info.append(
+                self.check_different_test_results_for_commit_pair(test_result_merge, test_result_parent, path_suite))
+            conflict_info.append(self.check_different_test_results_for_merge_scenario(test_result_base, test_result_parent,
+                                                                                      test_result_merge, path_suite))
 
         except:
             print("Some project versions could not be evaluated")
@@ -360,71 +374,29 @@ if __name__ == '__main__':
     with open(config['path_hash_csv']) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         for row in csv_reader:
-            evo = evotest(row[7], row[8], row[0])
+            if row[1] == "true":
+                evo = evotest(project_name=row[0])
+                merge = MergeScenario(merge_information=row)
 
-            merge = MergeScenario(evo.project.get_path_local_project, row)
-            evo.compile_commits(merge)
-            #result_randoop_left, result_randoop_right = evo.exec_randoop(evo, scenario)
+                result_evodiff_left = evo.exec_evosuite_diff_jar(evo, merge, row[10], row[11], row[13])
+                result_evodiff_right = evo.exec_evosuite_diff_jar(evo, merge, row[10], row[12], row[13])
+                result_evosuite_left = evo.exec_evosuite_jar(evo, merge, row[10], row[11], row[13])
+                result_evosuite_right = evo.exec_evosuite_jar(evo, merge, row[10], row[12], row[13])
 
-            result_evosuite_left = evo.exec_evosuite(evo, merge, "left")
-            result_evosuite_right = evo.exec_evosuite(evo, merge, "right")
-            result_evodiff_left = evo.exec_evosuite_diff(evo, merge, "left")
-            result_evodiff_right = evo.exec_evosuite_diff(evo, merge, "right")
+                evo.output_report.write_output_results(evo.project.get_project_name(), merge, "evosuite-diff", "left", result_evodiff_left)
+                evo.output_report.write_output_results(evo.project.get_project_name(),merge, "evosuite-diff", "right", result_evodiff_right)
+                evo.output_report.write_output_results(evo.project.get_project_name(),merge, "evosuite", "left", result_evosuite_left)
+                evo.output_report.write_output_results(evo.project.get_project_name(),merge, "evosuite", "right", result_evosuite_right)
 
-            evo.write_output_results_new(merge, "evosuite-diff", "left", result_evodiff_left)
-            evo.write_output_results_new(merge, "evosuite-diff", "right", result_evodiff_right)
-            evo.write_output_results_new(merge, "evosuite", "left", result_evosuite_left)
-            evo.write_output_results_new(merge, "evosuite", "right", result_evosuite_right)
-            #evo.write_output_results_new(scenario, "randoop", "left", result_randoop_left[0], result_randoop_left[1],
-            #                             result_randoop_left[2])
-            #evo.write_output_results_new(scenario, "randoop", "right", result_randoop_right[0], result_randoop_right[1],
-            #                             result_randoop_right[2])
+            else:
+                evo = evotest(row[8], row[9], row[0])
+                merge = MergeScenario(evo.project.get_path_local_project, row)
+                evo.compile_commits(merge)
 
-'''
-        for case in cases:
+                result_evosuite_left = evo.exec_evosuite(evo, merge, "left")
+                result_evosuite_right = evo.exec_evosuite(evo, merge, "right")
+                result_evodiff_left = evo.exec_evosuite_diff(evo, merge, "left")
+                result_evodiff_right = evo.exec_evosuite_diff(evo, merge, "right")
 
-        ###evosuite
-            evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
-            evo.classes_dir = evo.generate_dependencies_path(scenario, case)
-            evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
-
-            print(evo.gen_evosuite(scenario))
-            test_result = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.dRegCp)  # fail on base - passing tests 0 2 7
-            test_result2 = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
-            test_result3 = evo.try_evosuite(evo.classes_dir, evo.sut_class, evo.mergeDir)  # fail on merge - passing tests 0 2 7
-            print(test_result)
-            print(test_result2)
-            print(test_result3)
-
-
-            evo.write_output_csv_intersec(test_result, test_result2, test_result3, scenario)
-
-
-        #######evosuite differencial######3
-        
-
-        for case in cases:
-            evo.dRegCp = evo.generate_dependencies_path(scenario, "base")
-            evo.classes_dir = evo.generate_dependencies_path(scenario, case)
-            evo.mergeDir = evo.generate_dependencies_path(scenario, "merge")
-
-            # thread_evosuite_diff = threading.Thread(target=evo.gen_evosuite_diff)
-            print("waiting analisys finish")
-            evo.gen_evosuite_diff(scenario)
-            # thread_evosuite_diff.start()
-            # thread_evosuite_diff.join()
-
-            print("ended")
-
-            test_result = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.dRegCp)  # fail on base
-            test_result2 = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.classes_dir)  # pass on left
-            test_result3 = evo.try_evosuite_diff(evo.classes_dir, evo.sut_class, evo.mergeDir)  # fail on merge
-
-            print(test_result)
-            print(test_result2)
-            print(test_result3)
-            evo.write_output_csv(test_result, test_result2, test_result3, scenario)
-
-
-
-'''
+                evo.output_report.write_output_results(evo.project.get_project_name(), merge, "evosuite-diff", "left", result_evodiff_left)
+                evo.output_report.write_output_results(evo.project.get_project_name(), merge, "evosuite-diff", "right", result_evodiff_right)
