@@ -99,10 +99,11 @@ class evotest:
                 if self.suite_randoop else None)
 
     def check_different_test_results_for_commit_pair(self, parent_one, parent_two, path_suite):
-        if len(parent_one[2].difference(parent_two[2])) > 0:
-            return [True, parent_one[2].difference(parent_two[2]), path_suite[1]]
+        different_failed_tests = []
+        if len(parent_one[2].difference(parent_two[2])) > 0 or len(parent_two[2].difference(parent_one[2])) > 0:
+            return [True, parent_one[2].difference(parent_two[2]).union(parent_two[2].difference(parent_one[2])), path_suite[1]]
         else:
-            return [False, parent_one[2].difference(parent_two[2]), path_suite[1]]
+            return [False, parent_one[2].difference(parent_two[2]).union(parent_two[2].difference(parent_one[2])), path_suite[1]]
 
     def check_different_test_results_for_merge_scenario(self, parent_one, parent_two, parent_tree, path_suite):
         if len(parent_one[2].intersection(parent_tree[2]).difference(parent_two[2])) > 0:
@@ -186,9 +187,9 @@ class evotest:
     def exec_evosuite_jar(self, evo,scenario, jarBase, jarParent, jarMerge):
         conflict_info = []
         try:
-            evo.dRegCp = jarBase
-            evo.classes_dir = jarParent
-            evo.mergeDir = jarMerge
+            evo.project_dep.dRegCp = jarBase
+            evo.project_dep.classes_dir = jarParent
+            evo.project_dep.mergeDir = jarMerge
             self.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
 
             conflict_info = self.exec_evosuite_all(scenario)
