@@ -1,14 +1,15 @@
 import csv
 from nimrod.tools.randoop import Randoop
 from nimrod.tools.safira import Safira
-from nimrod.tools.junit import JUnit, JUnitResult, Coverage
-from nimrod.tools.evosuite import Evosuite
+from nimrod.tools.junit import JUnit
 from collections import namedtuple
 from nimrod.project_info.git_project import GitProject
 from nimrod.tests.utils import get_config
 from nimrod.project_info.merge_scenario import MergeScenario
 from nimrod.report.output_report import Output_report
 from nimrod.proj.project_dependencies import Project_dependecies
+from nimrod.setup_tools.evosuite_setup import Evosuite_setup
+from nimrod.setup_tools.evosuite_diff_setup import Evosuite_Diff_setup
 
 NimrodResult = namedtuple('NimrodResult', ['maybe_equivalent', 'not_equivalent',
                                            'coverage', 'differential',
@@ -21,8 +22,8 @@ class evotest:
         config = get_config()
         self.project_dep = Project_dependecies(config, path_local_project, path_local_module_analysis, project_name)
 
-        self.evosuite_diff_params = None
-        self.suite_evosuite_diff = None
+        self.evosuite_setup = Evosuite_setup()
+        self.evosuite_diff_setup = Evosuite_Diff_setup()
 
         self.suite_evosuite = None
         self.evosuite_params = None
@@ -34,35 +35,6 @@ class evotest:
 
     def set_git_project(self, path):
         self.project = GitProject(path)
-
-    def gen_evosuite_diff(self, scenario):
-
-        evosuite = Evosuite(
-            java=self.project_dep.java,
-            classpath=self.project_dep.classes_dir,
-            sut_class=self.project_dep.sut_class,
-            params=self.evosuite_diff_params,
-            tests_src=self.project_dep.tests_dst + '/' + self.project_dep.project.get_project_name() + '/' + scenario.merge_scenario.get_merge_hash()
-        )
-        self.suite_evosuite_diff = evosuite.generate_differential(self.project_dep.dRegCp)
-        return self.suite_evosuite_diff
-
-    def gen_evosuite(self, scenario):
-        evosuite = Evosuite(
-            java=self.project_dep.java,
-            classpath=self.project_dep.classes_dir,
-            tests_src=self.project_dep.tests_dst + '/' + self.project_dep.project.get_project_name() + '/' + scenario.merge_scenario.get_merge_hash(),
-            sut_class=self.project_dep.sut_class,
-            params=self.evosuite_params
-        )
-        # suite = evosuite.generate()
-        safira = Safira(java=self.project_dep.java, classes_dir=self.project_dep.classes_dir, mutant_dir=self.project_dep.dRegCp)
-        self.suite_evosuite = evosuite.generate_with_impact_analysis(safira)
-        if "Simulator" in self.project_dep.sut_class:
-            import distutils.dir_util
-            distutils.dir_util.copy_tree("./config/", evosuite.suite_dir + "/config/")
-
-        return self.suite_evosuite
 
     def gen_randoop(self, scenario):
         randoop = Randoop(
@@ -82,34 +54,10 @@ class evotest:
                 distutils.dir_util.copy_tree("./config/", randoop.suite_dir + "/config/")
         return self.suite_randoop
 
-    def try_evosuite(self, classes_dir, sut_class, mutant_dir):
-        junit = JUnit(java=self.project_dep.java, classpath=classes_dir)
-        return (junit.run_with_mutant(self.suite_evosuite, sut_class, mutant_dir)
-                if self.suite_evosuite else None)
-
-    def try_evosuite_diff(self, classes_dir, sut_class, mutant_dir):
-
-        junit = JUnit(java=self.project_dep.java, classpath=classes_dir)
-        res = junit.run_with_mutant(self.suite_evosuite_diff, sut_class, mutant_dir)
-        return res
-
     def try_randoop(self, classes_dir, sut_class, mutant_dir):
         junit = JUnit(java=self.java, classpath=classes_dir)
         return (junit.run_with_mutant(self.suite_randoop, sut_class, mutant_dir)
                 if self.suite_randoop else None)
-
-    def check_different_test_results_for_commit_pair(self, parent_one, parent_two, path_suite):
-        different_failed_tests = []
-        if len(parent_one[2].difference(parent_two[2])) > 0 or len(parent_two[2].difference(parent_one[2])) > 0:
-            return [True, parent_one[2].difference(parent_two[2]).union(parent_two[2].difference(parent_one[2])), path_suite[1]]
-        else:
-            return [False, parent_one[2].difference(parent_two[2]).union(parent_two[2].difference(parent_one[2])), path_suite[1]]
-
-    def check_different_test_results_for_merge_scenario(self, parent_one, parent_two, parent_tree, path_suite):
-        if len(parent_one[2].intersection(parent_tree[2]).difference(parent_two[2])) > 0:
-            return [True, parent_one[2].intersection(parent_tree[2]), path_suite[1]]
-        else:
-            return [False, parent_one[2].intersection(parent_tree[2]), path_suite[1]]
 
     def exec_randoop(self, evo,scenario):
         cases = ["left", "right"]
@@ -162,116 +110,6 @@ class evotest:
 
         return conflictLeft, conflictRight
 
-    def exec_evosuite(self, evo,scenario, parent):
-
-        conflict_info = []
-        try:
-            evo.project_dep.dRegCp = evo.project_dep.generate_dependencies_path(scenario, "base")
-            evo.project_dep.classes_dir = evo.project_dep.generate_dependencies_path(scenario, parent)
-            evo.project_dep.mergeDir = evo.project_dep.generate_dependencies_path(scenario, "merge")
-
-            path_suite = evo.gen_evosuite(scenario)
-
-            test_result_base = evo.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.dRegCp)  # fail on base - passing tests 0 2 7
-            test_result_parent = evo.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.classes_dir)  # pass on left
-            test_result_merge = evo.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.mergeDir)  # fail on merge - passing tests 0 2 7
-
-            conflict_info.append(self.check_different_test_results_for_commit_pair(test_result_base, test_result_parent,path_suite))
-            conflict_info.append(self.check_different_test_results_for_commit_pair(test_result_merge, test_result_parent,path_suite))
-            conflict_info.append(self.check_different_test_results_for_merge_scenario(test_result_base, test_result_parent,test_result_merge, path_suite))
-        except:
-            print("Some project versions could not be evaluated")
-
-        return conflict_info
-
-    def exec_evosuite_jar(self, evo,scenario, jarBase, jarParent, jarMerge):
-        conflict_info = []
-        try:
-            evo.project_dep.dRegCp = jarBase
-            evo.project_dep.classes_dir = jarParent
-            evo.project_dep.mergeDir = jarMerge
-            self.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
-
-            conflict_info = self.exec_evosuite_all(scenario)
-        except:
-            print("Some project versions could not be evaluated")
-
-        return conflict_info
-
-    def exec_evosuite_all(self, scenario):
-        conflict_info = []
-        try:
-            path_suite = evo.gen_evosuite(scenario)
-
-            test_result_base = evo.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class,
-                                                evo.project_dep.dRegCp)  # fail on base - passing tests 0 2 7
-            test_result_parent = evo.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.classes_dir)  # pass on left
-            test_result_merge = evo.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class,
-                                                 evo.project_dep.mergeDir)  # fail on merge - passing tests 0 2 7
-
-            conflict_info.append(
-                self.check_different_test_results_for_commit_pair(test_result_base, test_result_parent, path_suite))
-            conflict_info.append(
-                self.check_different_test_results_for_commit_pair(test_result_merge, test_result_parent, path_suite))
-            conflict_info.append(self.check_different_test_results_for_merge_scenario(test_result_base, test_result_parent,
-                                                                                      test_result_merge, path_suite))
-
-        except:
-            print("Some project versions could not be evaluated")
-
-        return conflict_info
-
-    def exec_evosuite_diff(self, evo, scenario, parent):
-        conflict_info = []
-        try:
-            evo.project_dep.dRegCp = evo.project_dep.generate_dependencies_path(scenario, "base")
-            evo.project_dep.classes_dir = evo.project_dep.generate_dependencies_path(scenario, parent)
-            evo.project_dep.mergeDir = evo.project_dep.generate_dependencies_path(scenario, "merge")
-            self.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
-
-            conflict_info = self.exec_evosuite_diff_all(scenario)
-
-        except:
-            print("Some project versions could not be evaluated")
-
-        return conflict_info
-
-    def exec_evosuite_diff_jar(self, evo, scenario, jarBase, jarParent, jarMerge):
-        conflict_info = []
-        try:
-            evo.project_dep.dRegCp = jarBase
-            evo.project_dep.classes_dir = jarParent
-            evo.project_dep.mergeDir = jarMerge
-            self.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
-
-            conflict_info = self.exec_evosuite_diff_all(scenario)
-
-        except:
-            print("Some project versions could not be evaluated")
-
-        return conflict_info
-
-    def exec_evosuite_diff_all(self, scenario):
-        conflict_info = []
-        try:
-            path_suite = evo.gen_evosuite_diff(scenario)
-
-            test_result_base = evo.try_evosuite_diff(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.dRegCp)  # fail on base
-            test_result_parent = evo.try_evosuite_diff(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.classes_dir)  # pass on left
-            test_result_merge = evo.try_evosuite_diff(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.mergeDir)  # fail on merge
-
-            conflict_info.append(
-                self.check_different_test_results_for_commit_pair(test_result_base, test_result_parent, path_suite))
-            conflict_info.append(
-                self.check_different_test_results_for_commit_pair(test_result_merge, test_result_parent, path_suite))
-            conflict_info.append(self.check_different_test_results_for_merge_scenario(test_result_base, test_result_parent,
-                                                                                      test_result_merge, path_suite))
-
-        except:
-            print("Some project versions could not be evaluated")
-
-        return conflict_info
-
 if __name__ == '__main__':
 
     config = get_config()
@@ -282,10 +120,10 @@ if __name__ == '__main__':
                 evo = evotest(project_name=row[0])
                 merge = MergeScenario(merge_information=row)
 
-                result_evodiff_left = evo.exec_evosuite_diff_jar(evo, merge, row[10], row[11], row[13])
-                result_evodiff_right = evo.exec_evosuite_diff_jar(evo, merge, row[10], row[12], row[13])
-                result_evosuite_left = evo.exec_evosuite_jar(evo, merge, row[10], row[11], row[13])
-                result_evosuite_right = evo.exec_evosuite_jar(evo, merge, row[10], row[12], row[13])
+                result_evodiff_left = evo.evosuite_diff_setup.exec_evosuite_diff_jar(evo, merge, row[10], row[11], row[13])
+                result_evodiff_right = evo.evosuite_diff_setup.exec_evosuite_diff_jar(evo, merge, row[10], row[12], row[13])
+                result_evosuite_left = evo.evosuite_setup.exec_evosuite_jar(evo, merge, row[10], row[11], row[13])
+                result_evosuite_right = evo.evosuite_setup.exec_evosuite_jar(evo, merge, row[10], row[12], row[13])
 
                 evo.output_report.write_output_results(evo.project_dep.project.get_project_name(), merge, "evosuite-diff", "left", result_evodiff_left)
                 evo.output_report.write_output_results(evo.project_dep.project.get_project_name(),merge, "evosuite-diff", "right", result_evodiff_right)
@@ -297,10 +135,10 @@ if __name__ == '__main__':
                 merge = MergeScenario(evo.project_dep.project.get_path_local_project, row)
                 evo.project_dep.compile_commits(merge)
 
-                result_evosuite_left = evo.exec_evosuite(evo, merge, "left")
-                result_evosuite_right = evo.exec_evosuite(evo, merge, "right")
-                result_evodiff_left = evo.exec_evosuite_diff(evo, merge, "left")
-                result_evodiff_right = evo.exec_evosuite_diff(evo, merge, "right")
+                result_evosuite_left = evo.evosuite_setup.exec_evosuite(evo, merge, "left")
+                result_evosuite_right = evo.evosuite_setup.exec_evosuite(evo, merge, "right")
+                result_evodiff_left = evo.evosuite_diff_setup.exec_evosuite_diff(evo, merge, "left")
+                result_evodiff_right = evo.evosuite_diff_setup.exec_evosuite_diff(evo, merge, "right")
 
                 evo.output_report.write_output_results(evo.project_dep.project.get_project_name(), merge, "evosuite-diff", "left", result_evodiff_left)
                 evo.output_report.write_output_results(evo.project_dep.project.get_project_name(), merge, "evosuite-diff", "right", result_evodiff_right)
