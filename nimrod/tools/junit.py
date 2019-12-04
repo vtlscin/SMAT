@@ -69,11 +69,13 @@ class JUnit:
                 time.time() - start, None, False
             )
         except subprocess.CalledProcessError as e:
+            print(e)
             return JUnitResult(
                 *JUnit._extract_results(e.output.decode('unicode_escape')),
                 time.time() - start, None, False
             )
         except subprocess.TimeoutExpired as e:
+            print(e)
             elapsed_time = time.time() - start
             print("# [WARNING] Run JUnit tests timed out. {0} seconds".format(
                 elapsed_time))
@@ -91,7 +93,7 @@ class JUnit:
 
     @staticmethod
     def _extract_results(output):
-        if len(re.findall(r'initializationError', output)) == 0:
+        if len(re.findall(r'initializationError', output)) == 0 and len(re.findall(r'NoSuchMethodError', output)) == 0:
             result = re.findall(r'Tests run: [0-9]*,[ ]{2}Failures: [0-9]*',
                                 output)
             if len(result) > 0:
