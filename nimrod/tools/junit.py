@@ -19,6 +19,14 @@ JUnitResult = namedtuple('JUnitResult', ['ok_tests', 'fail_tests',
                                          'coverage', 'timeout'])
 
 
+def is_failed_caused_by_compilation_problem(test_case_name, failed_test_message):
+    my_regex = re.escape(test_case_name) + r"[0-9A-Za-z0-9_\(\.\)\n]+NoSuchMethodError:"
+    matches = re.findall(my_regex, failed_test_message)
+    if (len(matches) > 0):
+        return True
+    else:
+        return False
+
 class JUnit:
 
     def __init__(self, java, classpath):
@@ -93,7 +101,7 @@ class JUnit:
 
     @staticmethod
     def _extract_results(output):
-        if len(re.findall(r'initializationError', output)) == 0 and len(re.findall(r'NoSuchMethodError', output)) == 0:
+        if len(re.findall(r'initializationError', output)) == 0:
             result = re.findall(r'Tests run: [0-9]*,[ ]{2}Failures: [0-9]*',
                                 output)
             if len(result) > 0:
@@ -113,7 +121,10 @@ class JUnit:
             test_case = re.findall(r'\..+?(?=\()', test)[0][1:]
 
             if len(i) > 0:
-                tests_fail.add('{0}#{1}'.format(file, test_case, int(i[-1])))
+                if ((is_failed_caused_by_compilation_problem(test_case, output) == True)):
+                    print("\n*** ERROR: test case "+test_case+" was not executable in project version. \n")
+                else:
+                    tests_fail.add('{0}#{1}'.format(file, test_case, int(i[-1])))
             else:
                 print("*** ERROR: Error in regex of junit output.")
 
