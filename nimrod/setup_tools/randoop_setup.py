@@ -16,13 +16,18 @@ class Randoop_setup:
             classpath=project_dep.classes_dir,
             tests_src=project_dep.tests_dst + '/' + project_dep.project.get_project_name() + '/' + scenario.merge_scenario.get_merge_hash(),
             sut_class=project_dep.sut_class,
+            sut_method=project_dep.sut_method,
             params=self.randoop_params
         )
         safira = Safira(java=project_dep.java, classes_dir=project_dep.classes_dir, mutant_dir=project_dep.dRegCp)
         if "Bisect" in project_dep.sut_class:
             self.suite_randoop = randoop.generate()
         else:
-            self.suite_randoop = randoop.generate_with_impact_analysis(safira)
+            try:
+                self.suite_randoop = randoop.generate_with_impact_analysis(safira, True)
+            except Exception as e:
+                print(e)
+                self.suite_randoop = randoop.generate_with_impact_analysis(safira, False)
             if "Simulator" in project_dep.sut_class:
                 import distutils.dir_util
                 distutils.dir_util.copy_tree("./config/", randoop.suite_dir + "/config/")
@@ -53,10 +58,11 @@ class Randoop_setup:
             evo.project_dep.classes_dir = jarParent
             evo.project_dep.mergeDir = jarMerge
             evo.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
+            evo.project_dep.sut_method = scenario.merge_scenario.get_sut_method()
 
             conflict_info = self.exec_randoop_all(evo, scenario)
         except:
-            print("Some project versions could not be evaluated")
+            print("Some project versions could not be evaluated - Some configuration steps were not performed")
 
         return conflict_info
 
@@ -79,6 +85,6 @@ class Randoop_setup:
                                                                                       test_result_merge, path_suite))
 
         except:
-            print("Some project versions could not be evaluated")
+            print("Some project versions could not be evaluated - ")
 
         return conflict_info

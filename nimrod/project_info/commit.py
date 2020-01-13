@@ -1,11 +1,12 @@
 class Commit:
 
-    def __init__(self, base_hash, left_hash, right_hash, merge_hash, sut_class):
+    def __init__(self, base_hash, left_hash, right_hash, merge_hash, sut_class, changed_method=""):
         self.merge_hash = merge_hash
         self.left_hash = left_hash
         self.right_hash = right_hash
         self.base_hash = base_hash
         self.sut_class = sut_class
+        self.sut_method = sut_class+"."+changed_method
         # self.valid_scenario = self.check_validate_scenario(base_hash, left_hash, right_hash)
 
     def get_merge_hash(self):
@@ -22,6 +23,9 @@ class Commit:
 
     def get_sut_class(self):
         return self.sut_class
+
+    def get_sut_method(self):
+        return self.sut_method
 
     def check_validate_scenario(self, base, left, right):
         if base[:7] == left or base[:7] == right:

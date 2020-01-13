@@ -13,6 +13,7 @@ class Project_dependecies:
         self.config = config
 
         self.sut_class = None
+        self.sut_method = None
         self.dRegCp = None  # base
         self.classes_dir = None  # left
         self.mergeDir = None  # merge
@@ -30,6 +31,7 @@ class Project_dependecies:
         data = [(scenario.merge_scenario.get_base_hash(), "base"), (scenario.merge_scenario.get_left_hash(), "left"),
                 (scenario.merge_scenario.get_right_hash(), "right"), (scenario.merge_scenario.get_merge_hash(), "merge")]
         self.sut_class = scenario.merge_scenario.get_sut_class()
+        self.sut_method = scenario.merge_scenario.get_sut_method()
         for hash in data:
             try:
                 self.project.checkout_on_commit(".")

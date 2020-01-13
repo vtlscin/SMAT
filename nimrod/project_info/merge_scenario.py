@@ -13,6 +13,5 @@ class MergeScenario:
         return self.merge_scenarios
 
     def identify_merge_scenarios(self, merge_information):
-        merge_scenarios = []
-        commit = Commit(merge_information[5], merge_information[3], merge_information[4], merge_information[2], merge_information[6])#, merge_information[5])#, merge_information[6], merge_information[7])
+        commit = Commit(merge_information[5], merge_information[3], merge_information[4], merge_information[2], merge_information[6], merge_information[7])#, merge_information[5])#, merge_information[6], merge_information[7])
         return commit
