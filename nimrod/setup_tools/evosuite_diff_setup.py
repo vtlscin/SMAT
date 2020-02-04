@@ -1,6 +1,7 @@
 from nimrod.tools.junit import JUnit, JUnitResult, Coverage
 from nimrod.tools.evosuite import Evosuite
 from nimrod.setup_tools.behaviour_check import Behaviour_change
+from nimrod.tools.safira import Safira
 
 
 class Evosuite_Diff_setup:
@@ -16,9 +17,16 @@ class Evosuite_Diff_setup:
             java=project_dep.java,
             classpath=project_dep.classes_dir,
             sut_class=project_dep.sut_class,
+            sut_method=project_dep.sut_method,
             params=self.evosuite_diff_params,
             tests_src=project_dep.tests_dst + '/' + project_dep.project.get_project_name() + '/' + scenario.merge_scenario.get_merge_hash()
         )
+        safira = Safira(java=project_dep.java, classes_dir=project_dep.classes_dir,
+                        mutant_dir=project_dep.dRegCp)
+        try:
+            self.suite_evosuite = evosuite.generate_with_impact_analysis(safira, True)
+        except Exception as e:
+            print(e)
         self.suite_evosuite_diff = evosuite.generate_differential(project_dep.dRegCp)
         return self.suite_evosuite_diff
 
@@ -50,6 +58,7 @@ class Evosuite_Diff_setup:
             evo.project_dep.classes_dir = jarParent
             evo.project_dep.mergeDir = jarMerge
             evo.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
+            evo.project_dep.sut_method = scenario.merge_scenario.get_sut_method()
 
             conflict_info = self.exec_evosuite_diff_all(evo, scenario)
 

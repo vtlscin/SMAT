@@ -1,4 +1,5 @@
 import os
+import re
 
 from nimrod.tools.suite_generator import SuiteGenerator
 from nimrod.utils import get_class_files, get_java_files
@@ -19,6 +20,13 @@ class Evosuite(SuiteGenerator):
             '-class', self.sut_class,
             '-Dtimeout', '10000',
             '-Dassertion_strategy=all',
+            '-Dp_reflection_on_private=0.0',
+            '-Dreflection_start_percent=0.0',
+            '-Dp_functional_mocking=0.0',
+            '-Dfunctional_mocking_percent=0.0',
+            '-Dminimize=false',
+            '-Djunit_check=false',
+            '-Dinline=false',
             '-DOUTPUT_DIR=' + self.suite_dir
         ]
 
@@ -80,17 +88,31 @@ class Evosuite(SuiteGenerator):
 
     # Argument for using only specific methods to test
     # Eg.: -Dtarget_method_list="append(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"
-    def generate_with_impact_analysis(self, impact_analysis):
+    def generate_with_impact_analysis(self, impact_analysis, method_analysis):
         self._make_src_dir()
         impact_analysis_result = impact_analysis.run()
-        method_list = self.create_method_list(impact_analysis_result)
-        if method_list.strip() != '':
-            self.parameters.append('-Dtarget_method_list=\"' + method_list + '\"')
+        if (method_analysis):
+            self.parameters.append('-Dtarget_method=\"' + self.create_method_list_for_single_method(self.get_format_evosuite_method_name()) + '\"')
+        else:
+            method_list = self.create_method_list(impact_analysis_result)
+            if method_list.strip() != '':
+                self.parameters.append('-Dtarget_method_list=\"' + method_list + '\"')
 
-        return super().generate(make_dir=False)   
+        return super().generate(make_dir=False)
 
+    def get_format_evosuite_method_name(self):
+        method_name = ""
+        try:
+            pattern = re.compile("\.[a-zA-Z0-9\-\_]*\([\s\S]*")
+            result = pattern.search(self.sut_method)
+            method_name = result.group(0)[1:]
+        except Exception as e:
+            print(e)
+            method_name = self.sut_method
 
-    def create_method_list(self, impact_analysis_result):   
+        return method_name
+
+    def create_method_list(self, impact_analysis_result):
         method_list = '' 
         for meth in impact_analysis_result.methods:
             if self.sut_class in meth:
@@ -106,6 +128,19 @@ class Evosuite(SuiteGenerator):
                     asm_meth_format = self.asm_based_method_method_descriptor(meth_args, ret)
                     method_list = method_list + "{0}{1}".format(meth_name, asm_meth_format) + ":"
                     
+        return method_list[:-1]
+
+    def create_method_list_for_single_method(self, method_name):
+        method_return = ""
+        try:
+            method_return = method_name.split(")")[1]
+        except Exception as e:
+            print(e)
+        meth_name = method_name[method_name.find(".") + 1:method_name.rfind("(")]
+        meth_args = method_name[method_name.find("(") + 1:method_name.rfind(")")].split(",")
+        asm_meth_format = self.asm_based_method_method_descriptor(meth_args, method_return)
+        method_list = meth_name+asm_meth_format+":"
+
         return method_list[:-1]
 
     #See at: https://asm.ow2.io/asm4-guide.pdf -- Section 2.1.3 and 2.1.4
@@ -155,7 +190,9 @@ class Evosuite(SuiteGenerator):
         elif arg == 'double':
             result = result + 'D'
         elif arg == 'void':
-            result = result + 'V'     
+            result = result + 'V'
+        elif arg == 'String':
+            result = result + 'Ljava/lang/String;'
         else:
             temp = "L" + arg.replace('.', '/') + ';'
             result = result + temp

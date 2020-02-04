@@ -66,7 +66,12 @@ class Randoop(SuiteGenerator):
         filename = os.path.join(output_dir, filename)
 
         with open(filename, 'w') as f:
-            f.write(self.sut_method)
+            method_name = self.sut_method
+            try:
+                method_name = [e+")" for e in self.sut_method.split(")") if e][0]
+            except Exception as e:
+                print(e)
+            f.write(method_name)
             f.close()
 
         return filename

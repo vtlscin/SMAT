@@ -17,12 +17,17 @@ class Evosuite_setup:
             classpath=project_dep.classes_dir,
             tests_src=project_dep.tests_dst + '/' + project_dep.project.get_project_name() + '/' + scenario.merge_scenario.get_merge_hash(),
             sut_class=project_dep.sut_class,
+            sut_method=project_dep.sut_method,
             params=self.evosuite_params
         )
         # suite = evosuite.generate()
         safira = Safira(java=project_dep.java, classes_dir=project_dep.classes_dir,
                         mutant_dir=project_dep.dRegCp)
-        self.suite_evosuite = evosuite.generate_with_impact_analysis(safira)
+        try:
+            self.suite_evosuite = evosuite.generate_with_impact_analysis(safira, True)
+        except Exception as e:
+            print(e)
+            self.suite_evosuite = evosuite.generate_with_impact_analysis(safira, False)
         if "Simulator" in project_dep.sut_class:
             import distutils.dir_util
             distutils.dir_util.copy_tree("./config/", evosuite.suite_dir + "/config/")
@@ -56,6 +61,7 @@ class Evosuite_setup:
             evo.project_dep.classes_dir = jarParent
             evo.project_dep.mergeDir = jarMerge
             evo.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
+            evo.project_dep.sut_method = scenario.merge_scenario.get_sut_method()
 
             conflict_info = self.exec_evosuite_all(evo, scenario)
         except:
