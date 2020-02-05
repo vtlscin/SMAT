@@ -7,20 +7,24 @@ class Output_report():
         self.path_output_csv = output_path
 
     def write_output_results(self, project_name, scenario, tool, which_parent, criteria_validation, class_information, method_information):
-        if (os.path.isfile(self.path_output_csv) == False):
-            output = ["project_name", "merge_scenario", "tool", "evaluated_parent", "commit_pair", "criteria_validation", "failed_tests", "class_information", "method_information"]
-            with open('persons.csv', 'wb') as csvfile:
-                filewriter = csv.writer(csvfile, delimiter=',',
-                                        quotechar='|', quoting=csv.QUOTE_MINIMAL)
-                filewriter.writerow(output) #
-                                            #self.write_each_result(output)
-
+        if (os.path.isfile(os.getcwd().replace("/nimrod/proj","/")+'semantic_study_result.csv') == False):
+            self.create_result_file()
+        else:
+            self.path_output_csv = os.getcwd().replace("/nimrod/proj", "/") + "semantic_study_result.csv"
         self.write_each_result(self.formate_output_line(project_name, scenario.merge_scenario.get_merge_hash(), tool, which_parent, "base-parent", criteria_validation, 0, class_information, method_information))
         self.write_each_result(self.formate_output_line(project_name, scenario.merge_scenario.get_merge_hash(), tool, which_parent, "parent-merge", criteria_validation, 1, class_information, method_information))
         self.write_each_result(self.formate_output_line(project_name, scenario.merge_scenario.get_merge_hash(), tool, which_parent, "base-merge", criteria_validation, 2, class_information, method_information))
 
+    def create_result_file(self):
+        with open(os.getcwd().replace("/nimrod/proj","/")+'semantic_study_result.csv', 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["project_name", "merge_commit", "tool_under_analysis", "analyzed_parent", "commit_pair", "behavior_change", "failed_test_cases", "local_test_suite", "class_under-analysis", "method_under_analysis"])
+
+        self.path_output_csv = os.getcwd().replace("/nimrod/proj","/")+"semantic_study_result.csv"
+
+
     def write_each_result(self, output):
-        with open(self.path_output_csv, 'a') as fd:
+        with open(self.path_output_csv, 'a+') as fd:
             writer = csv.writer(fd)
             writer.writerow(output)
 

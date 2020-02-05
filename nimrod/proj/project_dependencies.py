@@ -20,11 +20,18 @@ class Project_dependecies:
 
         self.java = Java(self.config['java_home'])
         self.maven = Maven(self.java, self.config['maven_home'])
-        self.tests_dst = self.config["tests_dst"]
+        self.tests_dst = self.create_directory_test_destination()
+        #self.tests_dst = self.config["tests_dst"]
         self.project = GitProject(path_local_project, path_local_module_analysis, project_name)
         self.projects_folder = self.config["projects_folder"]
         self.path_hash_csv = self.config["path_hash_csv"]
         self.path_output_csv = self.config["path_output_csv"]
+
+    def create_directory_test_destination(self):
+        path_directory = os.getcwd().replace("/nimrod/proj","/")+'output-test-dest'
+        if (os.path.isdir(path_directory) == False):
+            os.mkdir(path_directory)
+        return path_directory
 
     def compile_commits(self, scenario):
         java_file = self.find_java_files(self.project.get_path_local_project(), scenario.merge_scenario.get_sut_class())
