@@ -15,7 +15,7 @@ TIMEOUT = 80
 
 
 JUnitResult = namedtuple('JUnitResult', ['ok_tests', 'fail_tests', 
-                                         'fail_test_set', 'run_time',
+                                         'fail_test_set', 'not_executed_test_set', 'run_time',
                                          'coverage', 'timeout'])
 
 
@@ -95,7 +95,7 @@ class JUnit:
         if len(result) > 0:
             result = result[0].replace('(', '')
             r = [int(s) for s in result.split() if s.isdigit()]
-            return r[0], 0, set()
+            return r[0], 0, set(), set()
 
         return 0, 0, set()
 
@@ -107,13 +107,15 @@ class JUnit:
             if len(result) > 0:
                 result = result[0].replace(',', ' ')
                 r = [int(s) for s in result.split() if s.isdigit()]
-                return r[0], r[1], JUnit._extract_test_id(output)
+                result = JUnit._extract_test_id(output)
+                return r[0], r[1], result[0], result[1]
 
         return 0, 0, set()
 
     @staticmethod
     def _extract_test_id(output):
         tests_fail = set()
+        tests_not_executed = set()
         for test in re.findall(r'\.test[0-9]+\([A-Za-z0-9_]+\.java:[0-9]+\)',
                                output):
             i = re.findall('\d+', test)
@@ -123,18 +125,20 @@ class JUnit:
             if len(i) > 0:
                 if ((is_failed_caused_by_compilation_problem(test_case, output) == True)):
                     print("\n*** ERROR: test case "+test_case+" was not executable in project version. \n")
+                    tests_not_executed.add('{0}#{1}'.format(file, test_case, int(i[-1])))
                 else:
                     tests_fail.add('{0}#{1}'.format(file, test_case, int(i[-1])))
             else:
                 print("*** ERROR: Error in regex of junit output.")
 
-        return tests_fail
+        return tests_fail, tests_not_executed
 
     def run_with_mutant(self, suite, sut_class, mutant_dir, cov_original=True,
                         original_dir=None):
         ok_tests = 0
         fail_tests = 0
         fail_test_set = set()
+        not_executed_test_set = set()
         run_time = 0
         call_points = set()
         test_cases = set()
@@ -148,6 +152,7 @@ class JUnit:
                                            test_class, mutant_dir)
             ok_tests += result.ok_tests
             fail_tests += result.fail_tests
+            not_executed_test_set = result.not_executed_test_set
             fail_test_set = fail_test_set.union(result.fail_test_set)
             run_time += run_time
             timeout = timeout or result.timeout
@@ -187,7 +192,7 @@ class JUnit:
                 if r.timeout:
                     return None
 
-        return JUnitResult(ok_tests, fail_tests, fail_test_set, run_time,
+        return JUnitResult(ok_tests, fail_tests, fail_test_set, not_executed_test_set, run_time,
                            Coverage(call_points, test_cases, executions,class_coverage),
                            timeout)
 
@@ -217,10 +222,10 @@ class JMockit:
     def get_coverage_report(self, mutation_line):
         report_file = self.get_coverage_report_file()
 
-        if report_file:
-            with open(report_file, 'r') as html:
-                soup = BeautifulSoup(html, 'html.parser')
-                return JMockit._get_coverage_info(soup, mutation_line)
+        #if report_file:
+            #with open(report_file, 'r') as html:
+                #soup = BeautifulSoup(html, 'html.parser')
+                #return JMockit._get_coverage_info(soup, mutation_line)
 
     def get_coverage_report_file(self):
         coverage_report = os.path.join(self.suite_dir, 'coverage-report',

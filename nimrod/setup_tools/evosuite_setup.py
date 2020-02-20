@@ -81,9 +81,9 @@ class Evosuite_setup:
                                                  evo.project_dep.mergeDir, evo.project_dep)  # fail on merge - passing tests 0 2 7
 
             conflict_info.append(
-                self.behaviour_change.check_different_test_results_for_commit_pair(test_result_base, test_result_parent, path_suite))
+                self.behaviour_change.check_different_test_results_for_commit_pair(test_result_parent, test_result_base, path_suite))
             conflict_info.append(
-                self.behaviour_change.check_different_test_results_for_commit_pair(test_result_merge, test_result_parent, path_suite))
+                self.behaviour_change.check_different_test_results_for_commit_pair(test_result_parent, test_result_merge, path_suite))
             conflict_info.append(self.behaviour_change.check_different_test_results_for_merge_scenario(test_result_base, test_result_parent,
                                                                                       test_result_merge, path_suite))
 
