@@ -88,3 +88,91 @@ class Randoop_setup:
             print("Some project versions could not be evaluated - ")
 
         return conflict_info
+
+    def exec_randoop_jar_merge_scenario(self, evo, scenario, commit_pairs):
+        conflict_info = []
+        try:
+            for commit_pair in commit_pairs:
+                conflict_info += self.exec_randoop_jar_commit_pair(evo, scenario, commit_pair[0], commit_pair[1], commit_pair[2], commit_pair[3])
+        except:
+            print("Some project versions could not be evaluated")
+
+        return conflict_info
+
+    def exec_randoop_jar_commit_pair(self, evo, scenario, jarCommitOne, jarCommitTwo, shaCommitOne, shaCommitTwo):
+        conflict_info = []
+        try:
+            evo.project_dep.classes_dir = jarCommitOne
+            evo.project_dep.dRegCp = jarCommitTwo
+            evo.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
+            evo.project_dep.sut_method = scenario.merge_scenario.get_sut_method()
+
+            conflict_info = self.exec_randoop_all_commit_pair(evo, scenario, shaCommitOne, shaCommitTwo)
+        except:
+            print("Some project versions could not be evaluated")
+
+        return conflict_info
+
+    def exec_randoop_all_commit_pair(self, evo, scenario, shaCommitOne, shaCommitTwo):
+        conflict_info = []
+        try:
+            path_suite = self.gen_randoop(scenario, evo.project_dep)
+
+            test_result_commit_one = self.try_randoop(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.dRegCp, evo.project_dep)  # fail on base - passing tests 0 2 7
+            test_result_commit_two = self.try_randoop(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.classes_dir, evo.project_dep)  # pass on left
+
+            conflict_info.append(
+                self.behaviour_change.check_different_test_results_for_commit_pair(test_result_commit_one, test_result_commit_two, path_suite, shaCommitOne, shaCommitTwo, "randoop"))
+
+        except:
+            print("Some project versions could not be evaluated")
+            conflict_info.append(["NONE", set(), "NO-INFORMATION", shaCommitOne, shaCommitTwo, "randoop"])
+
+        return conflict_info
+
+    def exec_randoop_jar_merge_scenario_test_conflicts(self, evo, scenario, commit_triples):
+        conflict_info = []
+        try:
+            for commit_triplet in commit_triples:
+                conflict_info += self.exec_randoop_jar_test_conflict(evo, scenario, commit_triplet[0], commit_triplet[1], commit_triplet[2], commit_triplet[3], commit_triplet[4], commit_triplet[5])
+        except:
+            print("Some project versions could not be evaluated")
+
+        return conflict_info
+
+    def exec_randoop_jar_test_conflict(self, evo, scenario, jarBase, jarParent, jarMerge, commitBaseSha, commitParentSha, commitMergeSha):
+        conflict_info = []
+        try:
+            self.setup_for_merge_scenario(evo, scenario, jarBase, jarParent, jarMerge)
+            conflict_info = self.exec_randoop_test_conflict(evo, scenario, commitBaseSha, commitParentSha, commitMergeSha)
+        except:
+            print("Some project versions could not be evaluated")
+
+        return conflict_info
+
+    def setup_for_merge_scenario(self, evo, scenario, jarBase, jarParent, jarMerge):
+        try:
+            evo.project_dep.dRegCp = jarBase
+            evo.project_dep.classes_dir = jarParent
+            evo.project_dep.mergeDir = jarMerge
+            evo.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
+            evo.project_dep.sut_method = scenario.merge_scenario.get_sut_method()
+        except:
+            print("Some project versions could not be evaluated")
+
+    def exec_randoop_test_conflict(self, evo, scenario, commitBaseSha, commitParentSha, commitMergeSha):
+        conflict_info = []
+        try:
+            path_suite = self.gen_randoop(scenario, evo.project_dep)
+
+            test_result_base = self.try_randoop(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.dRegCp, evo.project_dep)  # fail on base - passing tests 0 2 7
+            test_result_parent = self.try_randoop(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.classes_dir, evo.project_dep)  # pass on left
+            test_result_merge = self.try_randoop(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.mergeDir, evo.project_dep)  # fail on merge - passing tests 0 2 7
+
+            conflict_info.append(self.behaviour_change.check_different_test_results_for_merge_scenario(test_result_base, test_result_parent, test_result_merge, path_suite, commitBaseSha, commitParentSha, commitMergeSha, "randoop"))
+
+        except:
+            print("Some project versions could not be evaluated")
+            conflict_info.append(["NONE", set(), "NO-INFORMATION", commitBaseSha, commitParentSha, commitMergeSha, "randoop"])
+
+        return conflict_info
