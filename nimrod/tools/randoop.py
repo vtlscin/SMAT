@@ -20,7 +20,8 @@ class Randoop(SuiteGenerator):
             '-classpath', generate_classpath([self.classpath, RANDOOP]),
             'randoop.main.Main',
             'gentests',
-            '--randomseed=' + str(random.randint(0, 9999)),
+            '--deterministic=true',
+            '--randomseed=0',
             '--testclass=' + self.sut_class,
             '--junit-output-dir=' + self.suite_dir
         ]
