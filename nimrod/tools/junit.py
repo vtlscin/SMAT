@@ -5,8 +5,6 @@ import subprocess
 
 from collections import namedtuple
 
-from bs4 import BeautifulSoup
-
 from nimrod.tools.bin import JUNIT, HAMCREST, JMOCKIT, EVOSUITE_RUNTIME
 from nimrod.utils import generate_classpath, package_to_dir
 from nimrod.mutant import Mutant

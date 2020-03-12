@@ -1,4 +1,3 @@
-from git import Repo
 
 class GitProject:
 
