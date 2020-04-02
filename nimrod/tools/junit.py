@@ -13,7 +13,8 @@ TIMEOUT = 80
 
 
 JUnitResult = namedtuple('JUnitResult', ['ok_tests', 'fail_tests', 
-                                         'fail_test_set', 'not_executed_test_set', 'run_time',
+                                         'fail_test_set', 'fail_test_set_with_files', 'not_executed_test_set',
+                                         'not_executed_test_set_with_files', 'run_time',
                                          'coverage', 'timeout'])
 
 
@@ -93,11 +94,12 @@ class JUnit:
         if len(result) > 0:
             result = result[0].replace('(', '')
             r = [int(s) for s in result.split() if s.isdigit()]
-            return r[0], 0, set(), set()
+            return set(), 0, set(), set(), set(), set()
 
         return 0, 0, set()
 
     @staticmethod
+    #trabalhar para extrair o conjunto de testes que passaram.
     def _extract_results(output):
         if len(re.findall(r'initializationError', output)) == 0:
             result = re.findall(r'Tests run: [0-9]*,[ ]{2}Failures: [0-9]*',
@@ -106,7 +108,7 @@ class JUnit:
                 result = result[0].replace(',', ' ')
                 r = [int(s) for s in result.split() if s.isdigit()]
                 result = JUnit._extract_test_id(output)
-                return r[0], r[1], result[0], result[1]
+                return result[2], r[1], result[0], result[3], result[1], result[4]
 
         return 0, 0, set()
 
@@ -114,29 +116,44 @@ class JUnit:
     def _extract_test_id(output):
         tests_fail = set()
         tests_not_executed = set()
-        for test in re.findall(r'\.test[0-9]+\([A-Za-z0-9_]+\.java:[0-9]+\)',
-                               output):
+        tests_fail_with_files = set()
+        tests_not_executed_with_files = set()
+        list_failed_tests = []
+
+        list_failed_tests = re.findall(r'test[0-9]+\([A-Za-z0-9_.]+\)', output)
+        number_executed_tests = int(re.findall('Tests run: \d+', output)[0].split("Tests run: ")[-1])
+        for test in list_failed_tests:
             i = re.findall('\d+', test)
-            file = re.findall(r'\(.+?(?=\.)', test)[0][1:]
-            test_case = re.findall(r'\..+?(?=\()', test)[0][1:]
+            test_case = re.findall(r'.+?(?=\()', test)[0]
+            file = str(re.findall(r'\(.+?(?=\))', test)[0]).split(".")[-1] #re.findall(r'\(.+?(?=\))', test)[0][1:].to_s.split(".")[-1]
 
             if len(i) > 0:
                 if ((is_failed_caused_by_compilation_problem(test_case, output) == True)):
                     print("\n*** ERROR: test case "+test_case+" was not executable in project version. \n")
-                    tests_not_executed.add('{0}#{1}'.format(file, test_case, int(i[-1])))
+                    tests_not_executed_with_files.add('{0}#{1}'.format(file, test_case, int(i[-1])))
+                    tests_not_executed.add(test_case)
                 else:
-                    tests_fail.add('{0}#{1}'.format(file, test_case, int(i[-1])))
+                    print("\n*** Failed: test case " + test_case + ". \n")
+                    tests_fail_with_files.add('{0}#{1}'.format(file, test_case, int(i[-1])))
+                    tests_fail.add(test_case)
             else:
                 print("*** ERROR: Error in regex of junit output.")
+        executed_tests = set()
+        for i in range(0, number_executed_tests):
+            if not ('test'+str(i) in tests_fail) and not ('test'+str(i) in tests_not_executed):
+                value = 'test'+str(i)
+                executed_tests.add(value)
 
-        return tests_fail, tests_not_executed
+        return tests_fail, tests_not_executed, executed_tests, tests_fail_with_files, tests_not_executed_with_files
 
     def run_with_mutant(self, suite, sut_class, mutant_dir, cov_original=True,
                         original_dir=None):
-        ok_tests = 0
+        ok_tests = set()
         fail_tests = 0
         fail_test_set = set()
+        fail_test_set_with_files = set()
         not_executed_test_set = set()
+        not_executed_test_set_with_files = set()
         run_time = 0
         call_points = set()
         test_cases = set()
@@ -148,10 +165,12 @@ class JUnit:
             result = self.exec_with_mutant(suite.suite_dir,
                                            suite.suite_classes_dir, sut_class,
                                            test_class, mutant_dir)
-            ok_tests += result.ok_tests
+            ok_tests = result.ok_tests
             fail_tests += result.fail_tests
             not_executed_test_set = result.not_executed_test_set
+            not_executed_test_set_with_files = result.not_executed_test_set_with_files
             fail_test_set = fail_test_set.union(result.fail_test_set)
+            fail_test_set_with_files = fail_test_set.union(result.fail_test_set_with_files)
             run_time += run_time
             timeout = timeout or result.timeout
 
@@ -190,7 +209,8 @@ class JUnit:
                 if r.timeout:
                     return None
 
-        return JUnitResult(ok_tests, fail_tests, fail_test_set, not_executed_test_set, run_time,
+        return JUnitResult(ok_tests, fail_tests, fail_test_set, fail_test_set_with_files, not_executed_test_set,
+                           not_executed_test_set_with_files, run_time,
                            Coverage(call_points, test_cases, executions,class_coverage),
                            timeout)
 
