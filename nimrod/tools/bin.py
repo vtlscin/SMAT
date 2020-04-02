@@ -8,5 +8,5 @@ EVOSUITE = os.sep.join([PATH, 'bin', 'evosuite-1.0.6.jar'])
 EVOSUITE_RUNTIME = os.sep.join([PATH, 'bin',
                                 'evosuite-standalone-runtime-1.0.6.jar'])
 JMOCKIT = os.sep.join([PATH, 'bin', 'jmockit-1.40-marcio.1.jar'])
-RANDOOP = os.sep.join([PATH, 'bin', 'randoop-all-4.0.3.jar'])
+RANDOOP = os.sep.join([PATH, 'bin', 'randoop-all-4.2.2.jar'])
 SAFIRA = os.sep.join([PATH, 'bin', 'safira.jar'])
