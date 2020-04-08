@@ -148,6 +148,7 @@ class JUnit:
 
     def run_with_mutant(self, suite, sut_class, mutant_dir, cov_original=True,
                         original_dir=None):
+        executions_test = []
         ok_tests = set()
         fail_tests = 0
         fail_test_set = set()
@@ -161,58 +162,61 @@ class JUnit:
         executions = 0
         timeout = False
 
-        for test_class in suite.test_classes:
-            result = self.exec_with_mutant(suite.suite_dir,
-                                           suite.suite_classes_dir, sut_class,
-                                           test_class, mutant_dir)
-            ok_tests = result.ok_tests
-            fail_tests += result.fail_tests
-            not_executed_test_set = result.not_executed_test_set
-            not_executed_test_set_with_files = result.not_executed_test_set_with_files
-            fail_test_set = fail_test_set.union(result.fail_test_set)
-            fail_test_set_with_files = fail_test_set.union(result.fail_test_set_with_files)
-            run_time += run_time
-            timeout = timeout or result.timeout
+        for i in range(0, 3):
+            for test_class in suite.test_classes:
+                result = self.exec_with_mutant(suite.suite_dir,
+                                               suite.suite_classes_dir, sut_class,
+                                               test_class, mutant_dir)
+                ok_tests = result.ok_tests
+                fail_tests += result.fail_tests
+                not_executed_test_set = result.not_executed_test_set
+                not_executed_test_set_with_files = result.not_executed_test_set_with_files
+                fail_test_set = result.fail_test_set
+                fail_test_set_with_files = result.fail_test_set_with_files
+                run_time += run_time
+                timeout = timeout or result.timeout
 
-            if not timeout:
-                if cov_original:
-                    if original_dir is None:
-                        original_dir = os.path.join(
-                            mutant_dir[:mutant_dir.rfind(os.sep)], 'ORIGINAL')
-                    if os.path.exists(original_dir):
-                        self.java.compile_all(self.classpath, original_dir)
-                        result_original = self.exec_with_mutant(suite.suite_dir,
-                                              suite.suite_classes_dir,
-                                              sut_class, test_class,
-                                              self.get_original(original_dir))
-                        if result_original.fail_tests > 0:
-                            #Se os testes tb falham no original e são os mesmos teste que falahm no mutante. 
-                            #Logo devem ser Equivalentes.
-                            if result_original.fail_test_set == result.fail_test_set:
-                                fail_tests = 0
-                                fail_test_set = set()
-                    else:
-                        print('[WARNING] ORIGINAL class not found in {0}, using'
-                              ' mutant in coverage.'.format(original_dir))
-                '''
-                cov = self.run_coverage(suite.suite_dir, sut_class,
-                                        mutant.line_number)
-                if cov:
-                    call_points = call_points.union(cov.call_points)
-                    test_cases = test_cases.union(cov.test_cases)
-                    executions += cov.executions
-                    class_coverage[test_class] = cov.class_coverage
-                '''
+                if not timeout:
+                    if cov_original:
+                        if original_dir is None:
+                            original_dir = os.path.join(
+                                mutant_dir[:mutant_dir.rfind(os.sep)], 'ORIGINAL')
+                        if os.path.exists(original_dir):
+                            self.java.compile_all(self.classpath, original_dir)
+                            result_original = self.exec_with_mutant(suite.suite_dir,
+                                                  suite.suite_classes_dir,
+                                                  sut_class, test_class,
+                                                  self.get_original(original_dir))
+                            if result_original.fail_tests > 0:
+                                #Se os testes tb falham no original e são os mesmos teste que falahm no mutante.
+                                #Logo devem ser Equivalentes.
+                                if result_original.fail_test_set == result.fail_test_set:
+                                    fail_tests = 0
+                                    fail_test_set = set()
+                        else:
+                            print('[WARNING] ORIGINAL class not found in {0}, using'
+                                  ' mutant in coverage.'.format(original_dir))
+                else:
+                    r = self.exec(suite.suite_dir, suite.suite_classes_dir,
+                                  sut_class, test_class)
+                    if r.timeout:
+                        return None
+
+            executions_test.append(JUnitResult(ok_tests, fail_tests, fail_test_set, fail_test_set_with_files, not_executed_test_set,not_executed_test_set_with_files, run_time,Coverage(call_points, test_cases, executions,class_coverage),timeout))
+
+        return self.check_for_consistent_test_results(executions_test)
+
+    def check_for_consistent_test_results(self, executions):
+        stable_execution = None
+
+        for one_execution in executions:
+            if (stable_execution == None):
+                stable_execution = one_execution
             else:
-                r = self.exec(suite.suite_dir, suite.suite_classes_dir,
-                              sut_class, test_class)
-                if r.timeout:
-                    return None
+                if (stable_execution.fail_test_set != one_execution.fail_test_set != set() and stable_execution.fail_tests < one_execution.fail_tests):
+                    stable_execution = one_execution
 
-        return JUnitResult(ok_tests, fail_tests, fail_test_set, fail_test_set_with_files, not_executed_test_set,
-                           not_executed_test_set_with_files, run_time,
-                           Coverage(call_points, test_cases, executions,class_coverage),
-                           timeout)
+        return stable_execution
 
     @staticmethod
     def get_original(original_dir):
