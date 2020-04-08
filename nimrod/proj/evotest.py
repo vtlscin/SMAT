@@ -1,4 +1,5 @@
 import csv
+import os
 from nimrod.tools.randoop import Randoop
 from nimrod.tools.safira import Safira
 from nimrod.tools.junit import JUnit
@@ -11,6 +12,7 @@ from nimrod.proj.project_dependencies import Project_dependecies
 from nimrod.setup_tools.evosuite_setup import Evosuite_setup
 from nimrod.setup_tools.evosuite_diff_setup import Evosuite_Diff_setup
 from nimrod.setup_tools.randoop_setup import Randoop_setup
+from nimrod.report.report import Report
 
 NimrodResult = namedtuple('NimrodResult', ['maybe_equivalent', 'not_equivalent',
                                            'coverage', 'differential',
@@ -48,16 +50,31 @@ if __name__ == '__main__':
 
     config = get_config()
     with open(config['path_hash_csv']) as csv_file:
-        csv_reader = csv.reader(csv_file, delimiter=';')
+        csv_reader = csv.reader(csv_file, delimiter=',')
         for row in csv_reader:
             if row[1] == "commit_pairs":
                 print("Commits pair analysis")
                 evo = evotest(project_name=row[0])
                 merge = MergeScenario(merge_information=row)
+                for i in range(0, 5):
+                    evosuite_diff_commit_pair = evo.evosuite_diff_setup.exec_evosuite_diff_jar_commit_pair(evo, merge,row[10], row[11],row[5], row[3])
+                    evo.output_report.write_output_results_commit_pairs(row[0], evosuite_diff_commit_pair, row[6], row[7])
+                    evosuite_commit_pair = evo.evosuite_setup.exec_evosuite_jar_commit_pair(evo, merge, row[10], row[11],row[5], row[3])
+                    evo.output_report.write_output_results_commit_pairs(row[0], evosuite_commit_pair, row[6], row[7])
+                    randoop_commit_pair = evo.randoop_setup.exec_randoop_jar_commit_pair(evo, merge, row[10], row[11],row[5], row[3])
+                    evo.output_report.write_output_results_commit_pairs(row[0], randoop_commit_pair, row[6], row[7])
+            else:
+                print("Semantic Conflict Analysis")
+                evo = evotest(project_name=row[0])
+                merge = MergeScenario(merge_information=row)
+                path_report = evo.output_report.path_output_csv_test_conflicts
+                for i in range(0, 5):
+                    evosuite = evo.evosuite_setup.exec_evosuite_jar_test_conflict(evo, merge, row[10], row[11], row[13],row[5], row[3], row[2])
+                    evo.output_report.write_output_results_test_conflicts(row[0], evosuite, row[6], row[7])
+                    evosuite_diff = evo.evosuite_diff_setup.exec_evosuite_diff_jar_test_conflict(evo, merge, row[10],row[11], row[13],row[5], row[3], row[2])
+                    evo.output_report.write_output_results_test_conflicts(row[0], evosuite_diff, row[6], row[7])
+                    randoop = evo.randoop_setup.exec_randoop_jar_test_conflict(evo, merge, row[10], row[11], row[13],row[5], row[3], row[2])
+                    evo.output_report.write_output_results_test_conflicts(row[0], randoop, row[6], row[7])
 
-                evosuite_diff_commit_pair = evo.evosuite_diff_setup.exec_evosuite_diff_jar_commit_pair(evo, merge, row[7], row[6], row[3], row[2])
-                evo.output_report.write_output_results_commit_pairs(row[0], evosuite_diff_commit_pair, row[4], row[5])
-                evosuite_commit_pair = evo.evosuite_setup.exec_evosuite_jar_commit_pair(evo, merge, row[7], row[6],row[3], row[2])
-                evo.output_report.write_output_results_commit_pairs(row[0], evosuite_commit_pair, row[4], row[5])
-                randoop_commit_pair = evo.randoop_setup.exec_randoop_jar_commit_pair(evo, merge, row[7], row[6],row[3], row[2])
-                evo.output_report.write_output_results_commit_pairs(row[0], randoop_commit_pair, row[4], row[5])
+    final_report = Report()
+    final_report.get_report(os.getcwd().replace("/nimrod/proj","/test_conflicts.csv"))
