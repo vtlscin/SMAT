@@ -50,7 +50,7 @@ class Output_report():
     def create_result_file_test_conflicts(self):
         with open(os.getcwd().replace("/nimrod/proj","/")+'/test_conflicts.csv', 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(["project_name", "commitOneSha", "commitTwoSha", "commitThreeSha", "tool", "behavior_change", "failed_test_cases", "local_test_suite", "class_under-analysis", "method_under_analysis"])
+            writer.writerow(["project_name", "commitOneSha", "commitTwoSha", "commitThreeSha", "tool", "behavior_change", "failed_test_cases", "local_test_suite", "class_under-analysis", "method_under_analysis", "flaky_tests"])
 
         self.path_output_csv_test_conflicts = os.getcwd().replace("/nimrod/proj","/")+"/test_conflicts.csv"
 
@@ -74,6 +74,6 @@ class Output_report():
 
     def formate_output_line_test_conflicts(self, project_name, criteria_validation, class_information, method_information):
         if len(criteria_validation) > 1:
-            return [project_name, criteria_validation[3], criteria_validation[4], criteria_validation[5], criteria_validation[6], criteria_validation[0], criteria_validation[1], criteria_validation[2], class_information, method_information]
+            return [project_name, criteria_validation[3], criteria_validation[4], criteria_validation[5], criteria_validation[6], criteria_validation[0], criteria_validation[1], criteria_validation[2], class_information, method_information, criteria_validation[7]]
         else:
-            return [project_name, "", "", "", "", "", "", "", class_information, method_information]
+            return [project_name, "", "", "", "", "", "", "", class_information, method_information, ""]

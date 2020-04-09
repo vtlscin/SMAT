@@ -28,4 +28,4 @@ class Behaviour_change:
         if len(selected_cases) > 0:
             detected_behavior_change = True
 
-        return [detected_behavior_change, selected_cases, path_suite[1], commitBase, commitParent, commitMerge, tool]
+        return [detected_behavior_change, selected_cases, path_suite[1], commitBase, commitParent, commitMerge, tool, parent_one.flaky_test_set]
