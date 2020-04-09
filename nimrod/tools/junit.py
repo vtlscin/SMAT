@@ -14,7 +14,7 @@ TIMEOUT = 80
 
 JUnitResult = namedtuple('JUnitResult', ['ok_tests', 'fail_tests', 
                                          'fail_test_set', 'fail_test_set_with_files', 'not_executed_test_set',
-                                         'not_executed_test_set_with_files', 'run_time',
+                                         'not_executed_test_set_with_files', 'flaky_test_set', 'run_time',
                                          'coverage', 'timeout'])
 
 
@@ -94,7 +94,7 @@ class JUnit:
         if len(result) > 0:
             result = result[0].replace('(', '')
             r = [int(s) for s in result.split() if s.isdigit()]
-            return set(), 0, set(), set(), set(), set()
+            return set(), 0, set(), set(), set(), set(), set()
 
         return 0, 0, set()
 
@@ -108,7 +108,7 @@ class JUnit:
                 result = result[0].replace(',', ' ')
                 r = [int(s) for s in result.split() if s.isdigit()]
                 result = JUnit._extract_test_id(output)
-                return result[2], r[1], result[0], result[3], result[1], result[4]
+                return result[2], r[1], result[0], result[3], result[1], result[4], set()
 
         return 0, 0, set()
 
@@ -161,6 +161,7 @@ class JUnit:
         class_coverage = dict()
         executions = 0
         timeout = False
+        flaky_test_set = set()
 
         for i in range(0, 3):
             for test_class in suite.test_classes:
@@ -175,6 +176,7 @@ class JUnit:
                 fail_test_set_with_files = result.fail_test_set_with_files
                 run_time += run_time
                 timeout = timeout or result.timeout
+                flaky_test_set = result.flaky_test_set
 
                 if not timeout:
                     if cov_original:
@@ -202,21 +204,44 @@ class JUnit:
                     if r.timeout:
                         return None
 
-            executions_test.append(JUnitResult(ok_tests, fail_tests, fail_test_set, fail_test_set_with_files, not_executed_test_set,not_executed_test_set_with_files, run_time,Coverage(call_points, test_cases, executions,class_coverage),timeout))
+            executions_test.append(JUnitResult(ok_tests, fail_tests, fail_test_set, fail_test_set_with_files, not_executed_test_set,not_executed_test_set_with_files, flaky_test_set, run_time,Coverage(call_points, test_cases, executions,class_coverage),timeout))
 
         return self.check_for_consistent_test_results(executions_test)
 
     def check_for_consistent_test_results(self, executions):
+        failed_test_set = set()
         stable_execution = None
-
+        stable_failed_test_cases = set()
         for one_execution in executions:
             if (stable_execution == None):
                 stable_execution = one_execution
-            else:
-                if (stable_execution.fail_test_set != one_execution.fail_test_set != set() and stable_execution.fail_tests < one_execution.fail_tests):
-                    stable_execution = one_execution
+                stable_failed_test_cases = one_execution.fail_test_set
+            stable_failed_test_cases = stable_failed_test_cases.intersection(one_execution.fail_test_set)
+            failed_test_set = failed_test_set.union(one_execution.fail_test_set)
+        final_failed_test_set = failed_test_set.difference(stable_failed_test_cases)
 
-        return stable_execution
+        if (final_failed_test_set == set()):
+            return stable_execution
+        else:
+            stable_execution.fail_test_set = self.discard_unstable_failed_tests(final_failed_test_set, stable_execution.fail_test_set)
+            stable_execution.not_executed_test_set = self.discard_unstable_failed_tests(final_failed_test_set, stable_execution.not_executed_test_set)
+            stable_execution.fail_test_set_with_files = self.discard_unstable_failed_tests(final_failed_test_set, stable_execution.fail_test_set_with_files)
+            stable_execution.not_executed_test_set_with_files = self.discard_unstable_failed_tests(final_failed_test_set, stable_execution.not_executed_test_set_with_files)
+            stable_execution.ok_tests = self.discard_unstable_failed_tests(final_failed_test_set, stable_execution.ok_tests)
+            stable_execution.flaky_test_set = final_failed_test_set
+            return stable_execution
+
+    def discard_unstable_failed_tests(self, unstable_failed_tests, test_cases_set):
+        test_cases_to_remove = set()
+        for unstable_failed_test in unstable_failed_tests:
+            for test_cases_set_one in test_cases_set:
+                if (str(unstable_failed_test) in str(test_cases_set_one)):
+                    test_cases_to_remove.add(test_cases_set_one)
+
+        for test_case_one in test_cases_to_remove:
+            test_cases_set.remove(test_case_one)
+
+        return test_cases_set
 
     @staticmethod
     def get_original(original_dir):
@@ -308,4 +333,3 @@ class JMockit:
                          for cp in li[1].split(',')])
             except IndexError:
                 return None
-
