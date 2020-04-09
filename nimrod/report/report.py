@@ -87,8 +87,8 @@ class Report:
         return [project_name, merge_commit, scenario.diff_evosuite_first_suite_detection, scenario.evosuite_first_suite_detection,
                 scenario.randoop_first_suite_detection, scenario.general_first_suite_detection, scenario.diff_evosuite_detected_sm_by_suites,
                 scenario.evosuite_detected_sm_by_suites, scenario.randoop_detected_sm_by_suites, scenario.diff_evosuite_detected_sm_until_first,
-                scenario.evosuite_detected_sm_until_first, scenario.randoop_detected_sm_until_first, scenario.mean_diff_evosuite_detected_sm_calls,
-                scenario.mean_evosuite_detected_sm_calls, scenario.mean_randoop_detected_sm_calls]
+                scenario.evosuite_detected_sm_until_first, scenario.randoop_detected_sm_until_first, (scenario.diff_evosuite_detected_sm_by_suites +
+                scenario.evosuite_detected_sm_by_suites + scenario.randoop_detected_sm_by_suites)/3]
 
     def write_each_result(self, file_path, output):
         with open(file_path, 'a+') as fd:
@@ -103,7 +103,9 @@ class Report:
                              "first_suite_semantic_conflict_general", "suites_with_detection_diff_evosuite",
                              "suites_with_detection_evosuite", "suites_with_detection_diff_randoop",
                              "calls_until_first_detection_diff_evosuite", "calls_until_first_detection_evosuite",
-                             "calls_until_first_detection_randoop", "call_mean_detection_diff_evosuite",
-                             "call_mean_detection_evosuite", "call_mean_detection_randoop"])
+                             "calls_until_first_detection_randoop", "detected_call_mean_by_tools"])
 
         self.path_final_report = os.getcwd().replace("/nimrod/proj", "/") + "/final_report.csv"
+
+#report = Report()
+#result = report.get_report("/home/leusonmario/PycharmProjects/nimrod-hunor/test_conflicts.csv")
