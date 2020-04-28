@@ -125,7 +125,7 @@ class Evosuite(SuiteGenerator):
                     ret = m[0:m.index(meth_temp)].strip()
                     ret = ret[ret.index(" "):].strip() 
                     meth_name = meth_temp[meth_temp.find(".")+1:meth_temp.rfind("(")]
-                    meth_args = meth_temp[meth_temp.find("(")+1:meth_temp.rfind(")")].split(",")
+                    meth_args = meth_temp[meth_temp.find("(")+1:meth_temp.rfind(")")].split("|")
                     asm_meth_format = self.asm_based_method_method_descriptor(meth_args, ret)
                     method_list = method_list + "{0}{1}".format(meth_name, asm_meth_format) + ":"
                     
