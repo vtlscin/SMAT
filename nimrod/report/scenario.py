@@ -26,9 +26,12 @@ class Scenario:
         self.diff_evosuite_detected_sm_until_first = self.check_first_suit_of_detected_behavior_changes(self.diff_evosuite_test_suites)
         self.randoop_detected_sm_until_first = self.check_first_suit_of_detected_behavior_changes(self.randoop_test_suites)
         # mean of calls performed to detect semantic conflict
-        self.mean_evosuite_detected_sm_calls = self.evosuite_detected_sm_by_suites/len(self.evosuite_test_suites)
-        self.mean_diff_evosuite_detected_sm_calls = self.diff_evosuite_detected_sm_by_suites/len(self.diff_evosuite_test_suites)
-        self.mean_randoop_detected_sm_calls = self.randoop_detected_sm_by_suites/len(self.randoop_test_suites)
+        if (len(self.evosuite_test_suites)):
+            self.mean_evosuite_detected_sm_calls = self.evosuite_detected_sm_by_suites/len(self.evosuite_test_suites)
+        if (len(self.diff_evosuite_test_suites)):
+            self.mean_diff_evosuite_detected_sm_calls = self.diff_evosuite_detected_sm_by_suites/len(self.diff_evosuite_test_suites)
+        if (len(self.randoop_test_suites)):
+            self.mean_randoop_detected_sm_calls = self.randoop_detected_sm_by_suites/len(self.randoop_test_suites)
 
     def get_suites_for_specific_tool(self, suites, tool):
         suites_for_tool = []
