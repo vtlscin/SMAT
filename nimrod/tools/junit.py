@@ -19,7 +19,7 @@ JUnitResult = namedtuple('JUnitResult', ['ok_tests', 'fail_tests',
 
 
 def is_failed_caused_by_compilation_problem(test_case_name, failed_test_message):
-    my_regex = re.escape(test_case_name) + r"[0-9A-Za-z0-9_\(\.\)\n]+NoSuchMethodError:"
+    my_regex = re.escape(test_case_name) + r"[0-9A-Za-z0-9_\(\.\)\n]+(NoSuchMethodError|NoSuchFieldError|NoSuchClassError|NoSuchAttributeError):"
     matches = re.findall(my_regex, failed_test_message)
     if (len(matches) > 0):
         return True
