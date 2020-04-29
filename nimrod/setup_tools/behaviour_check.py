@@ -20,8 +20,8 @@ class Behaviour_change:
         return selected_cases_with_files
 
     def check_different_test_results_for_merge_scenario(self, parent_one, parent_two, parent_tree, path_suite, commitBase, commitParent, commitMerge, tool):
-        aux_fail_pass_fail = (parent_one.fail_test_set.intersection(parent_tree.fail_test_set)).difference(parent_one.not_executed_test_set).difference(parent_tree.not_executed_test_set).difference(parent_two.not_executed_test_set).difference(parent_one.not_executed_test_set).difference(parent_two.not_executed_test_set).difference(parent_tree.not_executed_test_set)
-        aux_pass_fail_pass = (parent_one.ok_tests.intersection(parent_tree.ok_tests)).difference(parent_one.not_executed_test_set).difference(parent_tree.not_executed_test_set).difference(parent_two.not_executed_test_set).difference(parent_one.not_executed_test_set).difference(parent_two.not_executed_test_set).difference(parent_tree.not_executed_test_set)
+        aux_fail_pass_fail = (parent_one.fail_test_set.intersection(parent_tree.fail_test_set)).difference(parent_one.not_executed_test_set).difference(parent_tree.not_executed_test_set).difference(parent_two.not_executed_test_set).difference(parent_two.fail_test_set)
+        aux_pass_fail_pass = (parent_one.ok_tests.intersection(parent_tree.ok_tests)).difference(parent_one.not_executed_test_set).difference(parent_tree.not_executed_test_set).difference(parent_two.not_executed_test_set).difference(parent_two.ok_tests)
         selected_cases = self.get_test_cases_with_files(aux_fail_pass_fail, parent_one.fail_test_set_with_files).union(self.get_test_cases_with_files(aux_pass_fail_pass, parent_two.fail_test_set_with_files))
         detected_behavior_change = False
 
