@@ -5,8 +5,6 @@ import subprocess
 
 from collections import namedtuple
 
-from bs4 import BeautifulSoup
-
 from nimrod.tools.bin import JUNIT, HAMCREST, JMOCKIT, EVOSUITE_RUNTIME
 from nimrod.utils import generate_classpath, package_to_dir
 from nimrod.mutant import Mutant
@@ -15,9 +13,18 @@ TIMEOUT = 80
 
 
 JUnitResult = namedtuple('JUnitResult', ['ok_tests', 'fail_tests', 
-                                         'fail_test_set', 'run_time',
+                                         'fail_test_set', 'fail_test_set_with_files', 'not_executed_test_set',
+                                         'not_executed_test_set_with_files', 'flaky_test_set', 'run_time',
                                          'coverage', 'timeout'])
 
+
+def is_failed_caused_by_compilation_problem(test_case_name, failed_test_message):
+    my_regex = re.escape(test_case_name) + r"[0-9A-Za-z0-9_\(\.\)\n]+(NoSuchMethodError|NoSuchFieldError|NoSuchClassError|NoSuchAttributeError):"
+    matches = re.findall(my_regex, failed_test_message)
+    if (len(matches) > 0):
+        return True
+    else:
+        return False
 
 class JUnit:
 
@@ -37,16 +44,16 @@ class JUnit:
                           timeout)
 
     def exec_with_mutant(self, suite_dir, suite_classes_dir, sut_class,
-                         test_class, mutant, timeout=TIMEOUT):
+                         test_class, mutant_dir, timeout=TIMEOUT):
         classpath = generate_classpath([
             JMOCKIT, JUNIT, HAMCREST, EVOSUITE_RUNTIME,
             suite_classes_dir,
-            mutant.dir,
+            mutant_dir,
             self.classpath
         ])
 
         return self._exec(suite_dir, sut_class, test_class, classpath,
-                          mutant.dir, timeout)
+                          mutant_dir, timeout)
 
     def _exec(self, suite_dir, sut_class, test_class, classpath,
               cov_src_dirs='.', timeout=TIMEOUT):
@@ -69,11 +76,13 @@ class JUnit:
                 time.time() - start, None, False
             )
         except subprocess.CalledProcessError as e:
+            print(e)
             return JUnitResult(
                 *JUnit._extract_results(e.output.decode('unicode_escape')),
                 time.time() - start, None, False
             )
         except subprocess.TimeoutExpired as e:
+            print(e)
             elapsed_time = time.time() - start
             print("# [WARNING] Run JUnit tests timed out. {0} seconds".format(
                 elapsed_time))
@@ -85,11 +94,12 @@ class JUnit:
         if len(result) > 0:
             result = result[0].replace('(', '')
             r = [int(s) for s in result.split() if s.isdigit()]
-            return r[0], 0, set()
+            return set(), 0, set(), set(), set(), set(), set()
 
         return 0, 0, set()
 
     @staticmethod
+    #trabalhar para extrair o conjunto de testes que passaram.
     def _extract_results(output):
         if len(re.findall(r'initializationError', output)) == 0:
             result = re.findall(r'Tests run: [0-9]*,[ ]{2}Failures: [0-9]*',
@@ -97,85 +107,141 @@ class JUnit:
             if len(result) > 0:
                 result = result[0].replace(',', ' ')
                 r = [int(s) for s in result.split() if s.isdigit()]
-                return r[0], r[1], JUnit._extract_test_id(output)
+                result = JUnit._extract_test_id(output)
+                return result[2], r[1], result[0], result[3], result[1], result[4], set()
 
         return 0, 0, set()
 
     @staticmethod
     def _extract_test_id(output):
         tests_fail = set()
-        for test in re.findall(r'\.test[0-9]+\([A-Za-z0-9_]+\.java:[0-9]+\)',
-                               output):
+        tests_not_executed = set()
+        tests_fail_with_files = set()
+        tests_not_executed_with_files = set()
+        list_failed_tests = []
+
+        list_failed_tests = re.findall(r'test[0-9]+\([A-Za-z0-9_.]+\)', output)
+        number_executed_tests = int(re.findall('Tests run: \d+', output)[0].split("Tests run: ")[-1])
+        for test in list_failed_tests:
             i = re.findall('\d+', test)
-            file = re.findall(r'\(.+?(?=\.)', test)[0][1:]
-            test_case = re.findall(r'\..+?(?=\()', test)[0][1:]
+            test_case = re.findall(r'.+?(?=\()', test)[0]
+            file = str(re.findall(r'\(.+?(?=\))', test)[0]).split(".")[-1] #re.findall(r'\(.+?(?=\))', test)[0][1:].to_s.split(".")[-1]
 
             if len(i) > 0:
-                tests_fail.add('{0}#{1}'.format(file, test_case, int(i[-1])))
+                if ((is_failed_caused_by_compilation_problem(test_case, output) == True)):
+                    print("\n*** ERROR: test case "+test_case+" was not executable in project version. \n")
+                    tests_not_executed_with_files.add('{0}#{1}'.format(file, test_case, int(i[-1])))
+                    tests_not_executed.add(test_case)
+                else:
+                    print("\n*** Failed: test case " + test_case + ". \n")
+                    tests_fail_with_files.add('{0}#{1}'.format(file, test_case, int(i[-1])))
+                    tests_fail.add(test_case)
             else:
                 print("*** ERROR: Error in regex of junit output.")
+        executed_tests = set()
+        for i in range(0, number_executed_tests):
+            if not ('test'+str(i) in tests_fail) and not ('test'+str(i) in tests_not_executed):
+                value = 'test'+str(i)
+                executed_tests.add(value)
 
-        return tests_fail
+        return tests_fail, tests_not_executed, executed_tests, tests_fail_with_files, tests_not_executed_with_files
 
-    def run_with_mutant(self, suite, sut_class, mutant, cov_original=True,
+    def run_with_mutant(self, suite, sut_class, mutant_dir, cov_original=True,
                         original_dir=None):
-        ok_tests = 0
+        executions_test = []
+        ok_tests = set()
         fail_tests = 0
         fail_test_set = set()
+        fail_test_set_with_files = set()
+        not_executed_test_set = set()
+        not_executed_test_set_with_files = set()
         run_time = 0
         call_points = set()
         test_cases = set()
         class_coverage = dict()
         executions = 0
         timeout = False
+        flaky_test_set = set()
 
-        for test_class in suite.test_classes:
-            result = self.exec_with_mutant(suite.suite_dir,
-                                           suite.suite_classes_dir, sut_class,
-                                           test_class, mutant)
-            ok_tests += result.ok_tests
-            fail_tests += result.fail_tests
-            fail_test_set = fail_test_set.union(result.fail_test_set)
-            run_time += run_time
-            timeout = timeout or result.timeout
+        for i in range(0, 3):
+            for test_class in suite.test_classes:
+                result = self.exec_with_mutant(suite.suite_dir,
+                                               suite.suite_classes_dir, sut_class,
+                                               test_class, mutant_dir)
+                ok_tests = result.ok_tests
+                fail_tests += result.fail_tests
+                not_executed_test_set = result.not_executed_test_set
+                not_executed_test_set_with_files = result.not_executed_test_set_with_files
+                fail_test_set = result.fail_test_set
+                fail_test_set_with_files = result.fail_test_set_with_files
+                run_time += run_time
+                timeout = timeout or result.timeout
+                flaky_test_set = result.flaky_test_set
 
-            if not timeout:
-                if cov_original:
-                    if original_dir is None:
-                        original_dir = os.path.join(
-                            mutant.dir[:mutant.dir.rfind(os.sep)], 'ORIGINAL')
-                    if os.path.exists(original_dir):
-                        self.java.compile_all(self.classpath, original_dir)
-                        result_original = self.exec_with_mutant(suite.suite_dir,
-                                              suite.suite_classes_dir,
-                                              sut_class, test_class,
-                                              self.get_original(original_dir))
-                        if result_original.fail_tests > 0:
-                            #Se os testes tb falham no original e são os mesmos teste que falahm no mutante. 
-                            #Logo devem ser Equivalentes.
-                            if result_original.fail_test_set == result.fail_test_set:
-                                fail_tests = 0
-                                fail_test_set = set()
-                    else:
-                        print('[WARNING] ORIGINAL class not found in {0}, using'
-                              ' mutant in coverage.'.format(original_dir))
+                if not timeout:
+                    if cov_original:
+                        if original_dir is None:
+                            original_dir = os.path.join(
+                                mutant_dir[:mutant_dir.rfind(os.sep)], 'ORIGINAL')
+                        if os.path.exists(original_dir):
+                            self.java.compile_all(self.classpath, original_dir)
+                            result_original = self.exec_with_mutant(suite.suite_dir,
+                                                  suite.suite_classes_dir,
+                                                  sut_class, test_class,
+                                                  self.get_original(original_dir))
+                            if result_original.fail_tests > 0:
+                                #Se os testes tb falham no original e são os mesmos teste que falahm no mutante.
+                                #Logo devem ser Equivalentes.
+                                if result_original.fail_test_set == result.fail_test_set:
+                                    fail_tests = 0
+                                    fail_test_set = set()
+                        else:
+                            print('[WARNING] ORIGINAL class not found in {0}, using'
+                                  ' mutant in coverage.'.format(original_dir))
+                else:
+                    r = self.exec(suite.suite_dir, suite.suite_classes_dir,
+                                  sut_class, test_class)
+                    if r.timeout:
+                        return None
 
-                cov = self.run_coverage(suite.suite_dir, sut_class,
-                                        mutant.line_number)
-                if cov:
-                    call_points = call_points.union(cov.call_points)
-                    test_cases = test_cases.union(cov.test_cases)
-                    executions += cov.executions
-                    class_coverage[test_class] = cov.class_coverage
-            else:
-                r = self.exec(suite.suite_dir, suite.suite_classes_dir,
-                              sut_class, test_class)
-                if r.timeout:
-                    return None
+            executions_test.append(JUnitResult(ok_tests, fail_tests, fail_test_set, fail_test_set_with_files, not_executed_test_set,not_executed_test_set_with_files, flaky_test_set, run_time,Coverage(call_points, test_cases, executions,class_coverage),timeout))
 
-        return JUnitResult(ok_tests, fail_tests, fail_test_set, run_time,
-                           Coverage(call_points, test_cases, executions,class_coverage),
-                           timeout)
+        return self.check_for_consistent_test_results(executions_test)
+
+    def check_for_consistent_test_results(self, executions):
+        failed_test_set = set()
+        stable_execution = None
+        stable_failed_test_cases = set()
+        for one_execution in executions:
+            if (stable_execution == None):
+                stable_execution = one_execution
+                stable_failed_test_cases = one_execution.fail_test_set
+            stable_failed_test_cases = stable_failed_test_cases.intersection(one_execution.fail_test_set)
+            failed_test_set = failed_test_set.union(one_execution.fail_test_set)
+        final_failed_test_set = failed_test_set.difference(stable_failed_test_cases)
+
+        if (final_failed_test_set == set()):
+            return stable_execution
+        else:
+            stable_execution.fail_test_set = self.discard_unstable_failed_tests(final_failed_test_set, stable_execution.fail_test_set)
+            stable_execution.not_executed_test_set = self.discard_unstable_failed_tests(final_failed_test_set, stable_execution.not_executed_test_set)
+            stable_execution.fail_test_set_with_files = self.discard_unstable_failed_tests(final_failed_test_set, stable_execution.fail_test_set_with_files)
+            stable_execution.not_executed_test_set_with_files = self.discard_unstable_failed_tests(final_failed_test_set, stable_execution.not_executed_test_set_with_files)
+            stable_execution.ok_tests = self.discard_unstable_failed_tests(final_failed_test_set, stable_execution.ok_tests)
+            stable_execution.flaky_test_set = final_failed_test_set
+            return stable_execution
+
+    def discard_unstable_failed_tests(self, unstable_failed_tests, test_cases_set):
+        test_cases_to_remove = set()
+        for unstable_failed_test in unstable_failed_tests:
+            for test_cases_set_one in test_cases_set:
+                if (str(unstable_failed_test) in str(test_cases_set_one)):
+                    test_cases_to_remove.add(test_cases_set_one)
+
+        for test_case_one in test_cases_to_remove:
+            test_cases_set.remove(test_case_one)
+
+        return test_cases_set
 
     @staticmethod
     def get_original(original_dir):
@@ -203,10 +269,10 @@ class JMockit:
     def get_coverage_report(self, mutation_line):
         report_file = self.get_coverage_report_file()
 
-        if report_file:
-            with open(report_file, 'r') as html:
-                soup = BeautifulSoup(html, 'html.parser')
-                return JMockit._get_coverage_info(soup, mutation_line)
+        #if report_file:
+            #with open(report_file, 'r') as html:
+                #soup = BeautifulSoup(html, 'html.parser')
+                #return JMockit._get_coverage_info(soup, mutation_line)
 
     def get_coverage_report_file(self):
         coverage_report = os.path.join(self.suite_dir, 'coverage-report',
@@ -267,4 +333,3 @@ class JMockit:
                          for cp in li[1].split(',')])
             except IndexError:
                 return None
-

@@ -1,66 +1,104 @@
+import csv
 import os
-import shutil
-import time
-import threading
-import subprocess
 from nimrod.tools.randoop import Randoop
-from nimrod.tools.mujava import MuJava
-from nimrod.mutant import Mutant
 from nimrod.tools.safira import Safira
-from nimrod.tools.junit import JUnit, JUnitResult, Coverage
-from nimrod.tools.evosuite import Evosuite
-from nimrod.utils import package_to_dir
-
+from nimrod.tools.junit import JUnit
 from collections import namedtuple
-
-
-from nimrod.tools.java import Java
-from nimrod.tools.maven import Maven
+from nimrod.project_info.git_project import GitProject
 from nimrod.tests.utils import get_config
+from nimrod.project_info.merge_scenario import MergeScenario
+from nimrod.report.output_report import Output_report
+from nimrod.proj.project_dependencies import Project_dependecies
+from nimrod.setup_tools.evosuite_setup import Evosuite_setup
+from nimrod.setup_tools.evosuite_diff_setup import Evosuite_Diff_setup
+from nimrod.setup_tools.randoop_setup import Randoop_setup
+from nimrod.report.report import Report
+
+NimrodResult = namedtuple('NimrodResult', ['maybe_equivalent', 'not_equivalent',
+                                           'coverage', 'differential',
+                                           'timeout', 'test_tool', 'is_equal_coverage'])
+
 
 class evotest:
 
+    def __init__(self, path_local_project="", path_local_module_analysis="", project_name=""):
+        config = get_config()
+        self.project_dep = Project_dependecies(config, path_local_project, path_local_module_analysis, project_name)
 
-    def __init__(self):
-        self.classes_dir = '/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/apiguardian-api-1.0.0.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/commons-lang3-3.0.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/hamcrest-core-1.3.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/junit-4.13-beta-1.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/junit-jupiter-api-5.0.3.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/junit-platform-commons-1.0.3.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/opentest4j-1.0.0.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/classes/'
-        self.sut_class = "br.com.Ball"
-        self.dRegCp = '/media/jprm/Ubuntu/IC/example-project-evosuite/left/target/dependency/:/media/jprm/Ubuntu/IC/example-project-evosuite/left/target/dependency/apiguardian-api-1.0.0.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/left/target/dependency/commons-lang3-3.0.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/left/target/dependency/hamcrest-core-1.3.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/left/target/dependency/junit-4.13-beta-1.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/left/target/dependency/junit-jupiter-api-5.0.3.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/left/target/dependency/junit-platform-commons-1.0.3.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/left/target/dependency/opentest4j-1.0.0.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/left/target/classes'
-        self.java = Java(get_config()['java_home'])
-        self.maven = Maven(self.java, get_config()['maven_home'])
-        self.evosuite_diff_params = None
-        self.suite_evosuite_diff =None
+        self.evosuite_setup = Evosuite_setup()
+        self.evosuite_diff_setup = Evosuite_Diff_setup()
+        self.randoop_setup = Randoop_setup()
 
-    def gen_evosuite_diff(self):
-        evosuite = Evosuite(
-            java=self.java,
-            classpath=self.classes_dir,
-            sut_class=self.sut_class,
-            params=self.evosuite_diff_params,
-            tests_src="/media/jprm/Ubuntu/IC/nimrod-hunor/nimrod/proj/output"
-        )
-        self.suite_evosuite_diff = evosuite.generate_differential(self.dRegCp)
-        return self.suite_evosuite_diff
+        self.suite_evosuite = None
+        self.evosuite_params = None
 
+        self.suite_randoop = None
+        self.randoop_params = None
+
+        self.output_report = Output_report(config["path_output_csv"])
+
+    def set_git_project(self, path):
+        self.project = GitProject(path)
+
+    def get_commit_pairs(self, row):
+        return [[row[11],row[10],row[3],row[5]], [row[12],row[10],row[4],row[5]], [row[11],row[13],row[3],row[2]], [row[12],row[13],row[4],row[2]]]
+
+    def get_commit_triples(self, row):
+        return [[row[10],row[11],row[13],row[5], row[3], row[2]], [row[10],row[12],row[13],row[5], row[4], row[2]]]
 
 if __name__ == '__main__':
 
+    config = get_config()
+    with open(config['path_hash_csv']) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        for row in csv_reader:
+            if row[1] == "commit_pairs":
+                print("Commits pair analysis")
+                evo = evotest(project_name=row[0])
+                merge = MergeScenario(merge_information=row)
+                for i in range(0, 1):
+                    evosuite_diff_commit_pair = evo.evosuite_diff_setup.exec_evosuite_diff_jar_commit_pair(evo, merge, row[10], row[11],row[5], row[3])
+                    evo.output_report.write_output_results_commit_pairs(row[0], evosuite_diff_commit_pair, row[6], row[7])
+                    evosuite_diff_commit_pair = evo.evosuite_diff_setup.exec_evosuite_diff_jar_commit_pair(evo, merge,row[10],row[12],row[5],row[4])
+                    evo.output_report.write_output_results_commit_pairs(row[0], evosuite_diff_commit_pair, row[6],row[7])
+                    evosuite_diff_commit_pair = evo.evosuite_diff_setup.exec_evosuite_diff_jar_commit_pair(evo, merge,row[11],row[13],row[2],row[3])
+                    evo.output_report.write_output_results_commit_pairs(row[0], evosuite_diff_commit_pair, row[6],row[7])
+                    evosuite_diff_commit_pair = evo.evosuite_diff_setup.exec_evosuite_diff_jar_commit_pair(evo, merge,row[12],row[13],row[2],row[4])
+                    evo.output_report.write_output_results_commit_pairs(row[0], evosuite_diff_commit_pair, row[6],row[7])
+                    evosuite_commit_pair = evo.evosuite_setup.exec_evosuite_jar_commit_pair(evo, merge, row[10], row[11],row[5], row[3])
+                    evo.output_report.write_output_results_commit_pairs(row[0], evosuite_commit_pair, row[6], row[7])
+                    evosuite_commit_pair = evo.evosuite_setup.exec_evosuite_jar_commit_pair(evo, merge, row[10],row[12], row[5], row[4])
+                    evo.output_report.write_output_results_commit_pairs(row[0], evosuite_commit_pair, row[6], row[7])
+                    evosuite_commit_pair = evo.evosuite_setup.exec_evosuite_jar_commit_pair(evo, merge, row[11],row[13], row[2], row[3])
+                    evo.output_report.write_output_results_commit_pairs(row[0], evosuite_commit_pair, row[6], row[7])
+                    evosuite_commit_pair = evo.evosuite_setup.exec_evosuite_jar_commit_pair(evo, merge, row[12],row[13], row[2], row[4])
+                    evo.output_report.write_output_results_commit_pairs(row[0], evosuite_commit_pair, row[6], row[7])
+                    randoop_commit_pair = evo.randoop_setup.exec_randoop_jar_commit_pair(evo, merge, row[10], row[11],row[5], row[3])
+                    evo.output_report.write_output_results_commit_pairs(row[0], randoop_commit_pair, row[6], row[7])
+                    randoop_commit_pair = evo.randoop_setup.exec_randoop_jar_commit_pair(evo, merge, row[10], row[12],row[5], row[4])
+                    evo.output_report.write_output_results_commit_pairs(row[0], randoop_commit_pair, row[6], row[7])
+                    randoop_commit_pair = evo.randoop_setup.exec_randoop_jar_commit_pair(evo, merge, row[11], row[13],row[2], row[3])
+                    evo.output_report.write_output_results_commit_pairs(row[0], randoop_commit_pair, row[6], row[7])
+                    randoop_commit_pair = evo.randoop_setup.exec_randoop_jar_commit_pair(evo, merge, row[12], row[13],row[2], row[4])
+                    evo.output_report.write_output_results_commit_pairs(row[0], randoop_commit_pair, row[6], row[7])
+            elif row[1] == "true":
+                print("Semantic Conflict Analysis")
+                evo = evotest(project_name=row[0])
+                merge = MergeScenario(merge_information=row)
+                path_report = evo.output_report.path_output_csv_test_conflicts
+                for i in range(0, 5):
+                    evosuite = evo.evosuite_setup.exec_evosuite_jar_test_conflict(evo, merge, row[10], row[11], row[13],row[5], row[3], row[2])
+                    evo.output_report.write_output_results_test_conflicts(row[0], evosuite, row[6], row[7])
+                    evosuite = evo.evosuite_setup.exec_evosuite_jar_test_conflict(evo, merge, row[10], row[11], row[13],row[5], row[4], row[2])
+                    evo.output_report.write_output_results_test_conflicts(row[0], evosuite, row[6], row[7])
+                    evosuite_diff = evo.evosuite_diff_setup.exec_evosuite_diff_jar_test_conflict(evo, merge, row[10],row[11], row[13],row[5], row[3], row[2])
+                    evo.output_report.write_output_results_test_conflicts(row[0], evosuite_diff, row[6], row[7])
+                    evosuite_diff = evo.evosuite_diff_setup.exec_evosuite_diff_jar_test_conflict(evo, merge, row[10],row[11], row[13],row[5], row[4], row[2])
+                    evo.output_report.write_output_results_test_conflicts(row[0], evosuite_diff, row[6], row[7])
+                    randoop = evo.randoop_setup.exec_randoop_jar_test_conflict(evo, merge, row[10], row[11], row[13],row[5], row[3], row[2])
+                    evo.output_report.write_output_results_test_conflicts(row[0], randoop, row[6], row[7])
+                    randoop = evo.randoop_setup.exec_randoop_jar_test_conflict(evo, merge, row[10], row[11], row[13],row[5], row[4], row[2])
+                    evo.output_report.write_output_results_test_conflicts(row[0], randoop, row[6], row[7])
 
-    evo = evotest()
-    evo.gen_evosuite_diff()
-
-
-
-
-
-    #os.system('java -jar /media/jprm/Ubuntu/IC/evosuite/evosuite-1.0.6.jar -regressionSuite -projectCP $(find /media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/ | paste -sd ":")":/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/classes/" -Dregressioncp=$(find /media/jprm/Ubuntu/IC/example-project-evosuite/left/target/dependency/ | paste -sd ":")":/media/jprm/Ubuntu/IC/example-project-evosuite/left/target/classes" -class br.com.Ball')
-
-    #thread_evosuite_test = threading.Thread(target=evo.gen_evosuite_diff, args=())
-    #thread_evosuite_test.start()
-
-    #os.system(evo.dRegCp)
-    #print(evo.classes_dir)
-    #print(evo.java)
-    #a =subprocess.check_output(['java', '-jar', '/media/jprm/Ubuntu/IC/nimrod-hunor/nimrod/tools/bin/evosuite-1.0.6.jar','-regressionSuite'])
-    #a = subprocess.check_output('java -jar /media/jprm/Ubuntu/IC/evosuite/evosuite-1.0.6.jar  -regressionSuite -projectCP /media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/apiguardian-api-1.0.0.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/commons-lang3-3.0.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/hamcrest-core-1.3.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/junit-4.13-beta-1.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/junit-jupiter-api-5.0.3.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/junit-platform-commons-1.0.3.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/dependency/opentest4j-1.0.0.jar:/media/jprm/Ubuntu/IC/example-project-evosuite/base/target/classes/ -Dregressioncp=$(find /media/jprm/Ubuntu/IC/example-project-evosuite/left/target/dependency/ | paste -sd ":")":/media/jprm/Ubuntu/IC/example-project-evosuite/left/target/classes" -class br.com.Ball',shell=True)
-
-    #print(a)
+    final_report = Report()
+    final_report.get_report(os.getcwd().replace("/nimrod/proj","/test_conflicts.csv"))

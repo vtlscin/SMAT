@@ -19,8 +19,8 @@ class Maven:
         self.java = java
         self.skip_compile = skip_compile
 
-        self._set_home()
-        self._check()
+        #self._set_home()
+        #self._check()
 
     def _check(self):
         try:
@@ -54,7 +54,6 @@ class Maven:
             command = [os.path.join(self.maven_home,
                                     os.sep.join(['bin', 'mvn']))]
             command = command + list(args)
-
             return subprocess.check_output(command, cwd=cwd, env=env,
                                            timeout=timeout,
                                            stderr=subprocess.STDOUT)
@@ -74,16 +73,22 @@ class Maven:
         return self._exec_mvn(project_dir, self.java.get_env(), timeout,
                               'clean').decode('unicode_escape')
 
-    def compile(self, project_dir, timeout=TIMEOUT, clean=False):
+    def install(self, project_dir, timeout):
+        return self._exec_mvn(project_dir, self.java.get_env(), timeout,
+                              'install').decode('unicode_escape')
+
+    def compile(self, project_dir, timeout=TIMEOUT, clean=False, install=False):
         if clean:
             print("Cleaning up project with maven...")
             self.clean(project_dir, TIMEOUT)
 
+        if install:
+            self.compile(project_dir, TIMEOUT)
         print("Compiling the project with maven...")
         return self.extract_results(
-            self._exec_mvn(project_dir, self.java.get_env(), timeout,
-                           'compile').decode('unicode_escape')
+            self._exec_mvn(project_dir, self.java.get_env(), timeout,'compile').decode('unicode_escape')
         )
+
 
     def save_dependencies(self, project_dir):
         try:

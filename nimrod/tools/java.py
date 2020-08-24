@@ -81,8 +81,10 @@ class Java:
                                            timeout=timeout,
                                            stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
+            print(e)
             raise e
         except subprocess.TimeoutExpired as e:
+            print(e)
             raise e
         except FileNotFoundError as e:
             print('[ERROR] {0}: not found.'.format(program), file=sys.stderr)
