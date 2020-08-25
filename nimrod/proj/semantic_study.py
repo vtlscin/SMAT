@@ -101,4 +101,4 @@ if __name__ == '__main__':
                     semantic_study.output_report.write_output_results_test_conflicts(row[0], randoop, row[6], row[7])
 
     final_report = Report()
-    final_report.get_report(os.getcwd().replace("/nimrod/proj","/semantic_conflicts_results.csv"))
+    final_report.get_report(os.getcwd().replace("/nimrod/proj","/semantic_conflict_results.csv"))
