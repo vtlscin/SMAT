@@ -26,6 +26,7 @@ class Evosuite(SuiteGenerator):
             '-Dfunctional_mocking_percent=0',
             '-Dminimize=false',
             #'-Dassertions=false',
+            '-Dsearch_budget=300',
             '-Djunit_check=false',
             '-Dinline=false',
             '-DOUTPUT_DIR=' + self.suite_dir

@@ -156,7 +156,7 @@ class Randoop_setup:
             evo.project_dep.classes_dir = jarParent
             evo.project_dep.mergeDir = jarMerge
             evo.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
-            evo.project_dep.sut_method = scenario.merge_scenario.get_sut_method()
+            evo.project_dep.sut_method = scenario.merge_scenario.get_sut_method().replace("|",",")
         except:
             print("Some project versions could not be evaluated")
 
