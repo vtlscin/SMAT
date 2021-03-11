@@ -10,3 +10,5 @@ EVOSUITE_RUNTIME = os.sep.join([PATH, 'bin',
 JMOCKIT = os.sep.join([PATH, 'bin', 'jmockit-1.40-marcio.1.jar'])
 RANDOOP = os.sep.join([PATH, 'bin', 'randoop-all-4.2.2.jar'])
 SAFIRA = os.sep.join([PATH, 'bin', 'safira.jar'])
+JACOCOCLI = os.sep.join([PATH, 'bin', 'jacococli.jar'])
+JACOCOAGENT = os.sep.join([PATH, 'bin', 'jacocoagent.jar'])
