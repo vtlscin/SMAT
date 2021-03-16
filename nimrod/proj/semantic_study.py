@@ -87,17 +87,11 @@ if __name__ == '__main__':
                 merge = MergeScenario(merge_information=row)
                 path_report = semantic_study_obj.output_report.path_output_csv_test_conflicts
                 for i in range(0, 1):
-                    evosuite = semantic_study_obj.evosuite_setup.exec_evosuite_jar_test_conflict(semantic_study_obj, merge, row[10], row[11], row[13], row[5], row[3], row[2])
+                    evosuite = semantic_study_obj.evosuite_setup.exec_evosuite_for_both_criteria(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[4], row[3], row[2])
                     semantic_study_obj.output_report.write_output_results_test_conflicts(row[0], evosuite, row[6], row[7])
-                    evosuite = semantic_study_obj.evosuite_setup.exec_evosuite_jar_test_conflict(semantic_study_obj, merge, row[10], row[11], row[13], row[5], row[4], row[2])
-                    semantic_study_obj.output_report.write_output_results_test_conflicts(row[0], evosuite, row[6], row[7])
-                    evosuite_diff = semantic_study_obj.evosuite_diff_setup.exec_evosuite_diff_jar_test_conflict(semantic_study_obj, merge, row[10], row[11], row[13], row[5], row[3], row[2])
+                    evosuite_diff = semantic_study_obj.evosuite_diff_setup.exec_evosuite_for_both_criteria(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[4], row[3], row[2])
                     semantic_study_obj.output_report.write_output_results_test_conflicts(row[0], evosuite_diff, row[6], row[7])
-                    evosuite_diff = semantic_study_obj.evosuite_diff_setup.exec_evosuite_diff_jar_test_conflict(semantic_study_obj, merge, row[10], row[11], row[13], row[5], row[4], row[2])
-                    semantic_study_obj.output_report.write_output_results_test_conflicts(row[0], evosuite_diff, row[6], row[7])
-                    randoop = semantic_study_obj.randoop_setup.exec_randoop_jar_test_conflict(semantic_study_obj, merge, row[10], row[11], row[13], row[5], row[3], row[2])
-                    semantic_study_obj.output_report.write_output_results_test_conflicts(row[0], randoop, row[6], row[7])
-                    randoop = semantic_study_obj.randoop_setup.exec_randoop_jar_test_conflict(semantic_study_obj, merge, row[10], row[11], row[13], row[5], row[4], row[2])
+                    randoop = semantic_study_obj.randoop_setup.exec_randoop_jar_test_conflict_second_criteria(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[4], row[3], row[2])
                     semantic_study_obj.output_report.write_output_results_test_conflicts(row[0], randoop, row[6], row[7])
 
     final_report = Report()
