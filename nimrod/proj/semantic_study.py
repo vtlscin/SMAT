@@ -86,13 +86,13 @@ if __name__ == '__main__':
                 semantic_study_obj = semantic_study(project_name=row[0])
                 merge = MergeScenario(merge_information=row)
                 path_report = semantic_study_obj.output_report.path_output_csv_test_conflicts
-                for i in range(0, 1):
-                    evosuite = semantic_study_obj.evosuite_setup.exec_evosuite_for_both_criteria(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[4], row[3], row[2])
+                for i in range(0, 3):
+                    evosuite = semantic_study_obj.evosuite_setup.exec_evosuite_for_semantic_conflict_detection(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[3], row[4], row[2])
                     semantic_study_obj.output_report.write_output_results_test_conflicts(row[0], evosuite, row[6], row[7])
-                    evosuite_diff = semantic_study_obj.evosuite_diff_setup.exec_evosuite_for_both_criteria(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[4], row[3], row[2])
+                    evosuite_diff = semantic_study_obj.evosuite_diff_setup.exec_evosuite_for_semantic_conflict_detection(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[3], row[4], row[2])
                     semantic_study_obj.output_report.write_output_results_test_conflicts(row[0], evosuite_diff, row[6], row[7])
-                    randoop = semantic_study_obj.randoop_setup.exec_randoop_jar_test_conflict_second_criteria(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[4], row[3], row[2])
+                    randoop = semantic_study_obj.randoop_setup.exec_randoop_for_semantic_conflict_detection(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[4], row[3], row[2])
                     semantic_study_obj.output_report.write_output_results_test_conflicts(row[0], randoop, row[6], row[7])
 
     final_report = Report()
-    final_report.get_report(os.getcwd().replace("/nimrod/proj","/test_conflicts.csv"))
+    final_report.get_report(os.getcwd().replace("/nimrod/proj","/test_conflicts2.csv"))

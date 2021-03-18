@@ -64,7 +64,7 @@ class Evosuite_setup:
         except:
             print("Some project versions could not be evaluated")
 
-    def setup_for_merge_scenario_second(self, evo, scenario, jarBase, jarParentForGeneration, jarOtherParent, jarMerge):
+    def setup_for_full_merge_scenario(self, evo, scenario, jarBase, jarParentForGeneration, jarOtherParent, jarMerge):
         try:
             evo.project_dep.dRegCp = jarBase
             evo.project_dep.classes_dir = jarParentForGeneration
@@ -120,24 +120,14 @@ class Evosuite_setup:
 
         return conflict_info
 
-    def exec_evosuite_jar_test_conflict_second_criteria(self, evo, scenario, jarBase, jarParentLeft, jarParentRight, jarMerge, commitBaseSha, commitParentLeft, commitParentRight, commitMergeSha):
+    def exec_evosuite_for_semantic_conflict_detection(self, evo, scenario, jarBase, jarParentLeft, jarParentRight, jarMerge, commitBaseSha, commitParentLeft, commitParentRight, commitMergeSha):
         conflict_info = []
         try:
-            self.setup_for_merge_scenario_second(evo, scenario, jarBase, jarParentLeft, jarParentRight, jarMerge)
-            conflict_info = self.exec_evosuite_test_conflict_second(evo, scenario, commitBaseSha, commitParentLeft, commitParentLeft, commitMergeSha)
-        except:
-            print("Some project versions could not be evaluated")
+            self.setup_for_full_merge_scenario(evo, scenario, jarBase, jarParentLeft, jarParentRight, jarMerge)
+            self.generate_and_run_test_suites(evo, scenario, commitBaseSha, commitParentLeft, commitParentRight, commitMergeSha, conflict_info)
 
-        return conflict_info
-
-    def exec_evosuite_for_both_criteria(self, evo, scenario, jarBase, jarParentLeft, jarParentRight, jarMerge, commitBaseSha, commitParentLeft, commitParentRight, commitMergeSha):
-        conflict_info = []
-        try:
-            self.setup_for_merge_scenario_second(evo, scenario, jarBase, jarParentLeft, jarParentRight, jarMerge)
-            self.exec_evosuite_test_conflict_second(evo, scenario, commitBaseSha, commitParentLeft, commitParentRight, commitMergeSha, conflict_info)
-
-            self.setup_for_merge_scenario_second(evo, scenario, jarBase, jarParentRight, jarParentLeft, jarMerge)
-            self.exec_evosuite_test_conflict_second(evo, scenario, commitBaseSha, commitParentRight, commitParentLeft, commitMergeSha, conflict_info)
+            self.setup_for_full_merge_scenario(evo, scenario, jarBase, jarParentRight, jarParentLeft, jarMerge)
+            self.generate_and_run_test_suites(evo, scenario, commitBaseSha, commitParentRight, commitParentLeft, commitMergeSha, conflict_info)
         except:
             print("Some project versions could not be evaluated")
 
@@ -172,8 +162,8 @@ class Evosuite_setup:
                 self.behaviour_change.check_different_test_results_for_commit_pair(test_result_parent, test_result_base, path_suite))
             conflict_info.append(
                 self.behaviour_change.check_different_test_results_for_commit_pair(test_result_parent, test_result_merge, path_suite))
-            conflict_info.append(self.behaviour_change.check_different_test_results_for_merge_scenario(test_result_base, test_result_parent,
-                                                                                      test_result_merge, path_suite))
+            conflict_info.append(self.behaviour_change.check_conflict_occurrence_for_first_criterion(test_result_base, test_result_parent,
+                                                                                                     test_result_merge, path_suite))
 
         except:
             print("Some project versions could not be evaluated")
@@ -189,7 +179,7 @@ class Evosuite_setup:
             test_result_parent = self.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.classes_dir, evo.project_dep)  # pass on left
             test_result_merge = self.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.mergeDir, evo.project_dep)  # fail on merge - passing tests 0 2 7
 
-            conflict_info.append(self.behaviour_change.check_different_test_results_for_merge_scenario(test_result_base, test_result_parent, test_result_merge, path_suite, commitBaseSha, commitParentSha, commitMergeSha, "evosuite"))
+            conflict_info.append(self.behaviour_change.check_conflict_occurrence_for_first_criterion(test_result_base, test_result_parent, test_result_merge, path_suite, commitBaseSha, commitParentSha, commitMergeSha, "evosuite"))
 
         except:
             print("Some project versions could not be evaluated")
@@ -197,7 +187,7 @@ class Evosuite_setup:
 
         return conflict_info
 
-    def exec_evosuite_test_conflict_second(self, evo, scenario, commitBaseSha, commitParentTestSuite, commitOtherParent, commitMergeSha, conflict_info):
+    def generate_and_run_test_suites(self, evo, scenario, commitBaseSha, commitParentTestSuite, commitOtherParent, commitMergeSha, conflict_info):
         try:
             path_suite = self.gen_evosuite(scenario, evo.project_dep)
 
@@ -206,8 +196,8 @@ class Evosuite_setup:
             test_result_other_parent = self.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.rightDir, evo.project_dep)  # pass on left
             test_result_merge = self.try_evosuite(evo.project_dep.classes_dir, evo.project_dep.sut_class, evo.project_dep.mergeDir, evo.project_dep)  # fail on merge - passing tests 0 2 7
 
-            conflict_info.append(self.behaviour_change.check_different_test_results_for_merge_scenario(test_result_base, test_result_parent_test_suite, test_result_merge, path_suite, commitBaseSha, commitParentTestSuite, commitMergeSha, "evosuite"))
-            conflict_info.append(self.behaviour_change.check_different_test_results_for_merge_scenario_second_criterion(test_result_base, test_result_parent_test_suite, test_result_other_parent, test_result_merge, path_suite, commitBaseSha, commitParentTestSuite, commitOtherParent, commitMergeSha, "evosuite"))
+            conflict_info.append(self.behaviour_change.check_conflict_occurrence_for_first_criterion(test_result_base, test_result_parent_test_suite, test_result_merge, path_suite, commitBaseSha, commitParentTestSuite, commitMergeSha, "evosuite"))
+            conflict_info.append(self.behaviour_change.check_conflict_occurrence_for_second_criterion(test_result_base, test_result_parent_test_suite, test_result_other_parent, test_result_merge, path_suite, commitBaseSha, commitParentTestSuite, commitOtherParent, commitMergeSha, "evosuite"))
 
         except:
             print("Some project versions could not be evaluated")
