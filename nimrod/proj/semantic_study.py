@@ -1,19 +1,18 @@
 import csv
 import os
-from nimrod.tools.randoop import Randoop
-from nimrod.tools.safira import Safira
-from nimrod.tools.junit import JUnit
 from collections import namedtuple
+
+from nimrod.proj.project_dependencies import Project_dependecies
 from nimrod.project_info.git_project import GitProject
-from nimrod.tests.utils import get_config
 from nimrod.project_info.merge_scenario import MergeScenario
 from nimrod.report.output_report import Output_report
-from nimrod.proj.project_dependencies import Project_dependecies
-from nimrod.setup_tools.evosuite_setup import Evosuite_setup
-from nimrod.setup_tools.evosuite_diff_setup import Evosuite_Diff_setup
-from nimrod.setup_tools.randoop_setup import Randoop_setup
-from nimrod.report.report import Report
 from nimrod.report.output_semantic_conflicts import Output_semantic_conflicts
+from nimrod.report.report import Report
+from nimrod.setup_tools.evosuite_diff_setup import Evosuite_Diff_setup
+from nimrod.setup_tools.evosuite_setup import Evosuite_setup
+from nimrod.setup_tools.randoop_setup import Randoop_setup
+from nimrod.tests.utils import get_config
+from nimrod.setup_tools.tools import Tools
 
 NimrodResult = namedtuple('NimrodResult', ['maybe_equivalent', 'not_equivalent',
                                            'coverage', 'differential',
@@ -30,11 +29,7 @@ class semantic_study:
         self.evosuite_diff_setup = Evosuite_Diff_setup()
         self.randoop_setup = Randoop_setup()
 
-        self.suite_evosuite = None
-        self.evosuite_params = None
-
-        self.suite_randoop = None
-        self.randoop_params = None
+        self.output_semantic_conflict = Output_semantic_conflicts(os.getcwd().replace("/nimrod/proj", "/"), "test_conflicts")
 
         self.output_report = Output_report(config["path_output_csv"])
 
@@ -85,16 +80,15 @@ if __name__ == '__main__':
             elif row[1] == "true":
                 print("Semantic Conflict Analysis")
                 semantic_study_obj = semantic_study(project_name=row[0])
-                output_report = Output_semantic_conflicts(os.getcwd().replace("/nimrod/proj", "/"), "test_conflicts")
                 merge = MergeScenario(merge_information=row)
-                path_report = semantic_study_obj.output_report.path_output_csv_test_conflicts
+                #path_report = semantic_study_obj.output_report.path_output_csv_test_conflicts
                 for i in range(0, 3):
-                    evosuite = semantic_study_obj.evosuite_setup.exec_evosuite_for_semantic_conflict_detection(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[3], row[4], row[2])
-                    output_report.write_output_line(row[0], evosuite, row[6], row[7])
-                    evosuite_diff = semantic_study_obj.evosuite_diff_setup.exec_evosuite_for_semantic_conflict_detection(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[3], row[4], row[2])
-                    output_report.write_output_line(row[0], evosuite_diff, row[6], row[7])
-                    randoop = semantic_study_obj.randoop_setup.exec_randoop_for_semantic_conflict_detection(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[4], row[3], row[2])
-                    output_report.write_output_line(row[0], randoop, row[6], row[7])
+                    evosuite = semantic_study_obj.evosuite_setup.run_tool_for_semantic_conflict_detection(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[3], row[4], row[2], Tools.EVOSUITE.value)
+                    semantic_study_obj.output_semantic_conflict.write_output_line(row[0], evosuite, row[6], row[7])
+                    evosuite_diff = semantic_study_obj.evosuite_diff_setup.run_tool_for_semantic_conflict_detection(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[3], row[4], row[2], Tools.DIFF_EVOSUITE.value)
+                    semantic_study_obj.output_semantic_conflict.write_output_line(row[0], evosuite_diff, row[6], row[7])
+                    randoop = semantic_study_obj.randoop_setup.run_tool_for_semantic_conflict_detection(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[4], row[3], row[2], Tools.RANDOOP.value)
+                    semantic_study_obj.output_semantic_conflict.write_output_line(row[0], randoop, row[6], row[7])
 
     final_report = Report()
     final_report.get_report(os.getcwd().replace("/nimrod/proj","/test_conflicts2.csv"))

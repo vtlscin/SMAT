@@ -1,0 +1,6 @@
+from enum import Enum
+
+class Tools(Enum):
+    RANDOOP='RANDOOP'
+    EVOSUITE='EVOSUITE'
+    DIFF_EVOSUITE='DIFFERENTIAL-EVOSUITE'
