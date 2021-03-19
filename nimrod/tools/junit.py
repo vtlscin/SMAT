@@ -9,7 +9,7 @@ from nimrod.tools.bin import JUNIT, HAMCREST, JMOCKIT, EVOSUITE_RUNTIME
 from nimrod.utils import generate_classpath, package_to_dir
 from nimrod.mutant import Mutant
 
-TIMEOUT = 80
+TIMEOUT = 3000
 
 
 JUnitResult = namedtuple('JUnitResult', ['ok_tests', 'fail_tests', 
@@ -163,7 +163,7 @@ class JUnit:
         timeout = False
         flaky_test_set = set()
 
-        for i in range(0, 3):
+        for i in range(0, 1):
             for test_class in suite.test_classes:
                 result = self.exec_with_mutant(suite.suite_dir,
                                                suite.suite_classes_dir, sut_class,

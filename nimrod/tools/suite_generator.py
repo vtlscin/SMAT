@@ -12,8 +12,8 @@ from nimrod.utils import get_java_files
 from nimrod.utils import generate_classpath
 from nimrod.tools.bin import JUNIT, HAMCREST
 
-TIMEOUT = 5 * 60
-COMPILE_TIMEOUT = 20
+TIMEOUT = 3000
+COMPILE_TIMEOUT = 500
 
 lock = threading.RLock()
 
