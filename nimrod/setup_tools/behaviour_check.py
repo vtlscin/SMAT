@@ -1,4 +1,4 @@
-class Behaviour_change:
+class Behaviour_check:
 
     def check_different_test_results_for_commit_pair(self, parent_one, parent_two, path_suite, commitOneSHA, commitTwoSHA, tool):
         aux = (parent_one.fail_test_set.difference(parent_two.fail_test_set)).difference(parent_two.not_executed_test_set).union(parent_two.fail_test_set.difference(parent_one.fail_test_set)).difference(parent_one.not_executed_test_set)
@@ -8,7 +8,8 @@ class Behaviour_change:
         if len(selected_cases) > 0:
             detected_behavior_change = True
 
-        return [detected_behavior_change, selected_cases, path_suite[1], commitOneSHA, commitTwoSHA, tool]
+        return [detected_behavior_change, selected_cases, path_suite[1], "BEHAVIOR-CHANGE-COMMIT-PAIR", commitOneSHA, commitTwoSHA,
+                "NOT-REQUIRED", "NOT-REQUIRED", tool, parent_one.flaky_test_set.intersection(parent_two.flaky_test_set)]
 
     def get_test_cases_with_files(self, selected_cases, test_cases_with_files):
         selected_cases_with_files = set()
