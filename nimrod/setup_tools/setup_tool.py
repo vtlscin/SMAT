@@ -35,19 +35,21 @@ class Setup_tool(ABC):
             self.setup_for_full_merge_scenario(evo, scenario, jarBase, jarParentLeft, jarParentRight, jarMerge)
             test_results_left = self.generate_and_run_test_suites(evo, scenario, commitBaseSha, commitParentLeft,
                                     commitParentRight, commitMergeSha, conflict_info, tool)
-            self.check_semantic_conflict_occurrence(test_results_left[0], test_results_left[1], test_results_left[2],
+            if (len(test_results_left[0]) > 0):
+                self.check_semantic_conflict_occurrence(test_results_left[0], test_results_left[1], test_results_left[2],
                                     test_results_left[3], test_results_left[4], commitBaseSha, commitParentLeft,
                                     commitParentRight, commitMergeSha, tool, conflict_info)
-            self.check_behavior_change_commit_pair(test_results_left[0], test_results_left[1], test_results_left[2],
+                self.check_behavior_change_commit_pair(test_results_left[0], test_results_left[1], test_results_left[2],
                                     test_results_left[4], commitBaseSha, commitParentLeft, commitMergeSha, tool, conflict_info)
 
             self.setup_for_full_merge_scenario(evo, scenario, jarBase, jarParentRight, jarParentLeft, jarMerge)
             test_results_right = self.generate_and_run_test_suites(evo, scenario, commitBaseSha, commitParentRight,
                                     commitParentLeft, commitMergeSha, conflict_info, tool)
-            self.check_semantic_conflict_occurrence(test_results_right[0], test_results_right[1], test_results_right[2],
+            if (len(test_results_right[0]) > 0):
+                self.check_semantic_conflict_occurrence(test_results_right[0], test_results_right[1], test_results_right[2],
                                     test_results_right[3], test_results_right[4], commitBaseSha, commitParentRight,
                                     commitParentLeft, commitMergeSha, tool, conflict_info)
-            self.check_behavior_change_commit_pair(test_results_left[0], test_results_left[1], test_results_left[2],
+                self.check_behavior_change_commit_pair(test_results_left[0], test_results_left[1], test_results_left[2],
                                     test_results_left[4], commitBaseSha, commitParentRight, commitMergeSha, tool, conflict_info)
 
         except:
@@ -55,8 +57,27 @@ class Setup_tool(ABC):
 
         return conflict_info
 
+    def run_tool_for_behaviour_change_detection(self, evo, scenario, jarCommitOne, jarCommitTwo, commitOne, commitTwo, tool):
+        conflict_info = []
+        try:
+            self.setup_for_partial_merge_scenario(evo, scenario, jarCommitOne, jarCommitTwo)
+            test_results_left = self.generate_and_run_test_suites_for_commit_pair(evo, scenario, commitOne, commitTwo,
+                                conflict_info, tool)
+            if (len(test_results_left[0]) > 0):
+                conflict_info.append(self.behaviour_change.check_different_test_results_for_commit_pair(test_results_left[1],
+                                test_results_left[2], test_results_left[0], commitOne, commitTwo, tool))
+        except:
+            print("Some project versions could not be evaluated")
+
+        return conflict_info
+
     def generate_and_run_test_suites(self, evo, scenario, commitBaseSha, commitParentTestSuite, commitOtherParent,
                                      commitMergeSha, conflict_info, tool):
+        path_suite = []
+        test_result_base = set()
+        test_result_parent_test_suite = set()
+        test_result_other_parent = set()
+        test_result_merge = set()
         try:
             path_suite = self.generate_test_suite(scenario, evo.project_dep)
 
@@ -74,6 +95,25 @@ class Setup_tool(ABC):
                                     tool])
 
         return path_suite, test_result_base, test_result_parent_test_suite, test_result_other_parent, test_result_merge
+
+    def generate_and_run_test_suites_for_commit_pair(self, evo, scenario, commitOne, commitTestSuite, conflict_info, tool):
+        path_suite = []
+        test_result_base = set()
+        test_result_parent_test_suite = set()
+
+        try:
+            path_suite = self.generate_test_suite(scenario, evo.project_dep)
+
+            test_result_base = self.run_test_suite(evo.project_dep.classes_dir, evo.project_dep.sut_class,
+                                                   evo.project_dep.dRegCp, evo.project_dep)
+            test_result_parent_test_suite = self.run_test_suite(evo.project_dep.classes_dir, evo.project_dep.sut_class,
+                                                   evo.project_dep.classes_dir, evo.project_dep)
+        except:
+            print("Some project versions could not be evaluated")
+            conflict_info.append(["NONE", set(), "NO-INFORMATION", commitOne, commitTestSuite, "",
+                                  tool])
+
+        return path_suite, test_result_base, test_result_parent_test_suite
 
     def check_semantic_conflict_occurrence(self, path_suite, test_result_base, test_result_parent_test_suite,
                                     test_result_other_parent, test_result_merge, commitBaseSha, commitParentTestSuite,
