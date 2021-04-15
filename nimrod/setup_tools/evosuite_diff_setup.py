@@ -4,7 +4,7 @@ from nimrod.tools.evosuite import Evosuite
 
 class Evosuite_Diff_setup(Setup_tool):
 
-    def generate_test_suite(self, scenario, project_dep):
+    def generate_test_suite(self, scenario, project_dep, randoopy):
 
         evosuite = Evosuite(
             java=project_dep.java,

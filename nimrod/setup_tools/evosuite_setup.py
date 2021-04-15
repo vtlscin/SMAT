@@ -5,7 +5,7 @@ from nimrod.tools.safira import Safira
 
 class Evosuite_setup(Setup_tool):
 
-    def generate_test_suite(self, scenario, project_dep):
+    def generate_test_suite(self, scenario, project_dep, randoopy):
         evosuite = Evosuite(
             java=project_dep.java,
             classpath=project_dep.classes_dir,

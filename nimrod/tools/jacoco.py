@@ -17,7 +17,7 @@ class Jacoco:
 
     # projectJar = jar instrumentado do projeto
     # suite_class = local do arquivo class da suite de testes
-    # test_class = classe de teste
+    # test_class = nome da classe de teste
     def createJacocoExec(self, projectJar, suite_class, test_class):
         classpath = generate_classpath([
             JUNIT, HAMCREST, JACOCOAGENT,
@@ -39,6 +39,26 @@ class Jacoco:
             'report', jacocoExecDir,
             '--classfiles', classFiles,
             '--csv', nameCsvFile
+        ]
+
+        return self.execJava(*params)
+
+    # caminhoJacocoExec = local do arquivo jacocoExec
+    # classFiles = local do arquivo class da classe alvo dos testes.
+    # localHtmlGerado = arquivo para criacao do report html.
+    def generateReportHtml(self, jacocoExecDir, classFiles):
+        novoClassFile = classFiles
+        if type(classFiles) == list: # tratamento para caso receber uma lista de jars
+            novoClassFile = ""
+            for i in range(len(classFiles)):
+                novoClassFile = novoClassFile + classFiles[i]
+        caminhoJacocoExec = jacocoExecDir + "/jacoco.exec"
+        localHtmlGerado = jacocoExecDir + "/report"
+        params = [
+            '-jar', JACOCOCLI,
+            'report', caminhoJacocoExec,
+            '--classfiles', novoClassFile,
+            '--html', localHtmlGerado
         ]
 
         return self.execJava(*params)
