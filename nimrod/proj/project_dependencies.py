@@ -13,6 +13,7 @@ class Project_dependecies:
         self.config = config
 
         self.sut_class = None
+        self.sut_classes = None
         self.sut_method = None
         self.dRegCp = None  # base
         self.classes_dir = None  # left

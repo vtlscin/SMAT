@@ -13,9 +13,10 @@ class Setup_tool(ABC):
 
     def setup_for_partial_merge_scenario(self, evo, scenario, jarBase, jarParent, jarMerge=None):
         try:
-            evo.project_dep.dRegCp = jarBase
-            evo.project_dep.classes_dir = jarParent
+            evo.project_dep.baseDir = jarBase
+            evo.project_dep.parentReg = jarParent
             evo.project_dep.mergeDir = jarMerge
+            evo.project_dep.sut_classes = scenario.merge_scenario.get_sut_classes()
             evo.project_dep.sut_class = scenario.merge_scenario.get_sut_class()
             evo.project_dep.sut_method = scenario.merge_scenario.get_sut_method()
         except:
@@ -24,7 +25,7 @@ class Setup_tool(ABC):
     def setup_for_full_merge_scenario(self, evo, scenario, jarBase, jarParentForGeneration, jarOtherParent, jarMerge):
         try:
             self.setup_for_partial_merge_scenario(evo, scenario, jarBase, jarParentForGeneration, jarMerge)
-            evo.project_dep.rightDir = jarOtherParent
+            evo.project_dep.parentNotReg = jarOtherParent
         except:
             print("Some project versions could not be evaluated")
 
@@ -49,8 +50,8 @@ class Setup_tool(ABC):
                 self.check_semantic_conflict_occurrence(test_results_right[0], test_results_right[1], test_results_right[2],
                                     test_results_right[3], test_results_right[4], commitBaseSha, commitParentRight,
                                     commitParentLeft, commitMergeSha, tool, conflict_info)
-                self.check_behavior_change_commit_pair(test_results_left[0], test_results_left[1], test_results_left[2],
-                                    test_results_left[4], commitBaseSha, commitParentRight, commitMergeSha, tool, conflict_info)
+                self.check_behavior_change_commit_pair(test_results_right[0], test_results_right[1], test_results_right[2],
+                                    test_results_right[4], commitBaseSha, commitParentRight, commitMergeSha, tool, conflict_info)
 
         except:
             print("Some project versions could not be evaluated")
@@ -81,14 +82,14 @@ class Setup_tool(ABC):
         try:
             path_suite = self.generate_test_suite(scenario, evo.project_dep)
 
-            test_result_base = self.run_test_suite(evo.project_dep.classes_dir, evo.project_dep.sut_class,
-                                    evo.project_dep.dRegCp, evo.project_dep)
-            test_result_parent_test_suite = self.run_test_suite(evo.project_dep.classes_dir, evo.project_dep.sut_class,
-                                    evo.project_dep.classes_dir, evo.project_dep)
-            test_result_other_parent = self.run_test_suite(evo.project_dep.classes_dir, evo.project_dep.sut_class,
-                                    evo.project_dep.rightDir, evo.project_dep)
-            test_result_merge = self.run_test_suite(evo.project_dep.classes_dir, evo.project_dep.sut_class,
-                                    evo.project_dep.mergeDir, evo.project_dep)
+            test_result_base = self.run_test_suite(evo.project_dep.parentReg, evo.project_dep.sut_class,
+                                                   evo.project_dep.baseDir, evo.project_dep)
+            test_result_parent_test_suite = self.run_test_suite(evo.project_dep.parentReg, evo.project_dep.sut_class,
+                                                                evo.project_dep.parentReg, evo.project_dep)
+            test_result_other_parent = self.run_test_suite(evo.project_dep.parentReg, evo.project_dep.sut_class,
+                                                           evo.project_dep.parentNotReg, evo.project_dep)
+            test_result_merge = self.run_test_suite(evo.project_dep.parentReg, evo.project_dep.sut_class,
+                                                    evo.project_dep.mergeDir, evo.project_dep)
         except:
             print("Some project versions could not be evaluated")
             conflict_info.append(["NONE", set(), "NO-INFORMATION", commitBaseSha, commitParentTestSuite, commitMergeSha,
@@ -104,10 +105,10 @@ class Setup_tool(ABC):
         try:
             path_suite = self.generate_test_suite(scenario, evo.project_dep)
 
-            test_result_base = self.run_test_suite(evo.project_dep.classes_dir, evo.project_dep.sut_class,
-                                                   evo.project_dep.dRegCp, evo.project_dep)
-            test_result_parent_test_suite = self.run_test_suite(evo.project_dep.classes_dir, evo.project_dep.sut_class,
-                                                   evo.project_dep.classes_dir, evo.project_dep)
+            test_result_base = self.run_test_suite(evo.project_dep.parentReg, evo.project_dep.sut_class,
+                                                   evo.project_dep.baseDir, evo.project_dep)
+            test_result_parent_test_suite = self.run_test_suite(evo.project_dep.parentReg, evo.project_dep.sut_class,
+                                                                evo.project_dep.parentReg, evo.project_dep)
         except:
             print("Some project versions could not be evaluated")
             conflict_info.append(["NONE", set(), "NO-INFORMATION", commitOne, commitTestSuite, "",
