@@ -8,6 +8,7 @@ from nimrod.project_info.merge_scenario import MergeScenario
 from nimrod.report.output_behavior_change_commit_pair import Output_behavior_change_commit_pair
 from nimrod.report.output_report import Output_report
 from nimrod.report.output_semantic_conflicts import Output_semantic_conflicts
+from nimrod.report.report_analysis import Report_Analysis
 from nimrod.setup_tools.evosuite_diff_setup import Evosuite_Diff_setup
 from nimrod.setup_tools.evosuite_setup import Evosuite_setup
 from nimrod.setup_tools.randoop_modified_setup import Randoop_Modified_setup
@@ -64,3 +65,5 @@ if __name__ == '__main__':
                     semantic_study_obj.output_semantic_conflict.write_output_line(row[0], randoop, row[6], row[7])
                     randoop_modified = semantic_study_obj.randoop_modified_setup.run_tool_for_semantic_conflict_detection(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[3], row[4], row[2], Tools.RANDOOP_MOD.value)
                     semantic_study_obj.output_semantic_conflict.write_output_line(row[0], randoop_modified, row[6], row[7])
+                    report_analysis = Report_Analysis(randoop, randoop_modified)
+                    report_analysis.start_analysis()
