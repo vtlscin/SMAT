@@ -22,18 +22,23 @@ class Alternative_setup_tool(Randoop_setup):
             commitVersion = self.selectJar(evo, i, commitMergeSha, commitParentTestSuite, commitOtherParent,
                                            commitBaseSha)
 
+            print("Gerando testes para o randoopX")
             path_suite = self.generate_test_suite(scenario, evo.project_dep,
                                                   False)  # Indicacao para instanciar o randoopY
 
+            print("Iniciando analise de dados para o randoopX")
             dadosParaGravacaoRandoopX = self.retornaDadosParaAnalise(evo, path_suite, jacoco,
                                                                      scenario.merge_scenario.sut_class, listaPacoteMetodoClasse)
 
+            print("Gerando testes para o randoopY")
             path_suite_randoopY = self.generate_test_suite(scenario, evo.project_dep,
                                                            True)  # Indicacao para instanciar o randoopY
 
+            print("Iniciando analise de dados para o randoopY")
             dadosParaGravacaoRandoopY = self.retornaDadosParaAnalise(evo, path_suite_randoopY, jacoco,
                                                                      scenario.merge_scenario.sut_class, listaPacoteMetodoClasse)
 
+            print("Gerando linha do csv para versao", commitVersion)
             self.criaArquivoExcel(dadosParaGravacaoRandoopX[0], dadosParaGravacaoRandoopY[0],
                                   dadosParaGravacaoRandoopX[1], dadosParaGravacaoRandoopY[1],
                                   dadosParaGravacaoRandoopX[2], dadosParaGravacaoRandoopY[2], commitVersion,
@@ -105,7 +110,7 @@ class Alternative_setup_tool(Randoop_setup):
         global tagAClasseTarget
         global tagSpanMetodoTarget
 
-        print(classeTarget)
+        print("Classe Target ", classeTarget)
 
         listaJar = evo.project_dep.classes_dir.split(
             ":")  # Melhoria poderia ser feita removendo caractere do final da lista caso ele exista.
@@ -119,15 +124,16 @@ class Alternative_setup_tool(Randoop_setup):
 
         listaJarInstrumentados = listaJarInstrumentados + JACOCOAGENT
 
+        print("Iniciando execucao dos testes")
         self.run_test_suite(listaJarInstrumentados, evo.project_dep.sut_class, listaJarInstrumentados,
                             evo.project_dep)
 
         listaJar = list(filter(lambda x: x != '', listaJar))  # filtra registros vazios da lista
 
-        print(listaJar)
-
+        print("Gerando report em html")
         jacoco.generateReportHtml(path_suite.suite_dir, listaJar)
 
+        print("Gerando analise de todas classes do projeto")
         reportHtml = codecs.open(path_suite.suite_dir + "/report/index.html", 'r')
 
         soup = BeautifulSoup(reportHtml, 'html.parser')
@@ -136,7 +142,7 @@ class Alternative_setup_tool(Randoop_setup):
 
         tagTr = list(tagFoot.children)[0]  # recupera a tag tr responsavel pela linha de resultados
 
-        print(list(tagTr.children))
+        # print(list(tagTr.children))
 
         resultados = list(tagTr.children)
 
@@ -145,26 +151,27 @@ class Alternative_setup_tool(Randoop_setup):
 
         porcentagemCoberturaClasse = round((classesCobertas / totalClass) * 100, 2)
 
-        print("Porcentagem de classes cobertas ", porcentagemCoberturaClasse,
-              " Classes cobertas ", classesCobertas)
+        # print("Porcentagem de classes cobertas ", porcentagemCoberturaClasse,
+        #       " Classes cobertas ", classesCobertas)
 
         totalMetodos = int((resultados[10].get_text()).replace(".", ""))
         metodosCobertos = int(totalMetodos - int((resultados[9].get_text()).replace(".", "")))
 
         porcentagemCoberturaMetodo = round((metodosCobertos / totalMetodos) * 100, 2)
 
-        print("Porcentagem de metodos cobertos ", porcentagemCoberturaMetodo,
-              " Metodos cobertas ", metodosCobertos)
+        # print("Porcentagem de metodos cobertos ", porcentagemCoberturaMetodo,
+        #       " Metodos cobertas ", metodosCobertos)
 
         totalLinhas = int((resultados[8].get_text()).replace(".", ""))
         linhasCobertas = int(totalLinhas - int((resultados[7].get_text()).replace(".", "")))
 
         porcentagemCoberturaLinhas = round((linhasCobertas / totalLinhas) * 100, 2)
 
-        print("Porcentagem de linhas cobertas ", porcentagemCoberturaLinhas,
-              " Linhas cobertas ",
-              linhasCobertas)
+        # print("Porcentagem de linhas cobertas ", porcentagemCoberturaLinhas,
+        #       " Linhas cobertas ",
+        #       linhasCobertas)
 
+        print("Gerando analise da classe target")
         reportClasseTarger = codecs.open(
             path_suite.suite_dir + "/report/" + listaPacoteMetodoClasse[2] + "/index.html",
             'r')  # abre o index.html relativo ao pacote da classe target
@@ -182,7 +189,7 @@ class Alternative_setup_tool(Randoop_setup):
 
         tagTr = list(tagAClasseTarget.parents)[1]  # recupera a tag tr responsavel pela linha de resultados
 
-        print(list(tagTr.children))
+        # print(list(tagTr.children))
 
         resultadosClasseTarget = list(tagTr.children)
 
@@ -192,9 +199,9 @@ class Alternative_setup_tool(Randoop_setup):
 
         porcentagemCoberturaLinhasClasseTarget = round((linhasCobertasClasseTarget / totalLinhasClasseTarget) * 100, 2)
 
-        print("Porcentagem de linhas cobertas classe target", porcentagemCoberturaLinhasClasseTarget,
-              " Linhas cobertas classe target",
-              totalLinhasClasseTarget)
+        # print("Porcentagem de linhas cobertas classe target", porcentagemCoberturaLinhasClasseTarget,
+        #       " Linhas cobertas classe target",
+        #       totalLinhasClasseTarget)
 
         totalMetodosClasseTarget = int((resultadosClasseTarget[10].get_text()).replace(".", ""))
         metodosCobertosClasseTarget = int(
@@ -203,9 +210,10 @@ class Alternative_setup_tool(Randoop_setup):
         porcentagemCoberturaMetodoClasseTarget = round((metodosCobertosClasseTarget / totalMetodosClasseTarget) * 100,
                                                        2)
 
-        print("Porcentagem de metodos cobertos classe target", porcentagemCoberturaMetodoClasseTarget,
-              " Metodos cobertas classe target", totalMetodosClasseTarget)
+        # print("Porcentagem de metodos cobertos classe target", porcentagemCoberturaMetodoClasseTarget,
+        #       " Metodos cobertas classe target", totalMetodosClasseTarget)
 
+        print("Gerando analise do metodo target")
         reportMetodoTarger = codecs.open(
             path_suite.suite_dir + "/report/" + listaPacoteMetodoClasse[2] + "/" + listaPacoteMetodoClasse[1] + ".html",
             'r')  # abre o html relativo a classe target
@@ -223,7 +231,7 @@ class Alternative_setup_tool(Randoop_setup):
 
         tagTr = list(tagSpanMetodoTarget.parents)[1]
 
-        print(list(tagTr.children))
+        # print(list(tagTr.children))
 
         resultadosMetodoTarget = list(tagTr.children)
 
@@ -233,12 +241,14 @@ class Alternative_setup_tool(Randoop_setup):
 
         porcentagemCoberturaLinhasMetodoTarget = round((linhasCobertasMetodoTarget / totalLinhasMetodoTarget) * 100, 2)
 
-        print("Porcentagem de linhas cobertas metodo target", porcentagemCoberturaLinhasMetodoTarget,
-              " Linhas cobertas metodo target",
-              totalLinhasMetodoTarget)
+        # print("Porcentagem de linhas cobertas metodo target", porcentagemCoberturaLinhasMetodoTarget,
+        #       " Linhas cobertas metodo target",
+        #       totalLinhasMetodoTarget)
 
+        print("Gerando analise instruct metodo target")
         porcentagemInstrucMetodoTarget = (resultadosMetodoTarget[2].get_text()).replace("%", "")
 
+        print("Gerando analise branch metodo target")
         porcentagemBranchMetodoTarget = (resultadosMetodoTarget[4].get_text()).replace("%", "")
 
         return [porcentagemCoberturaClasse, porcentagemCoberturaMetodo, porcentagemCoberturaLinhas,
