@@ -31,6 +31,7 @@ class semantic_study:
         self.evosuite_diff_setup = Evosuite_Diff_setup()
         self.randoop_setup = Randoop_setup()
         self.randoop_modified_setup = Randoop_Modified_setup()
+        self.report_analysis = Report_Analysis()
 
         self.output_semantic_conflict = Output_semantic_conflicts(os.getcwd().replace("/nimrod/proj", "/"), "test_conflicts")
         self.output_behavior_change = Output_behavior_change_commit_pair(os.getcwd().replace("/nimrod/proj", "/"), "behavior_change")
@@ -65,5 +66,4 @@ if __name__ == '__main__':
                     semantic_study_obj.output_semantic_conflict.write_output_line(row[0], randoop, row[6], row[7])
                     randoop_modified = semantic_study_obj.randoop_modified_setup.run_tool_for_semantic_conflict_detection(semantic_study_obj, merge, row[10], row[11], row[12], row[13], row[5], row[3], row[4], row[2], Tools.RANDOOP_MOD.value)
                     semantic_study_obj.output_semantic_conflict.write_output_line(row[0], randoop_modified, row[6], row[7])
-                    report_analysis = Report_Analysis(randoop, randoop_modified)
-                    report_analysis.start_analysis()
+                    semantic_study_obj.report_analysis.start_analysis(randoop, randoop_modified)
