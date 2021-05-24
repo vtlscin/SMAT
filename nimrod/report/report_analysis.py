@@ -5,19 +5,27 @@ import os
 class Report_Analysis:
 
     def start_analysis(self, randoop_original, randoop_modified):
-        left_randoop_original = randoop_original[0][2]
-        left_randoop_modified = randoop_modified[0][2]
+        self.suites_comparison(randoop_original[0][2], randoop_modified[0][2])
+        right_path_index_original = len(randoop_original) - 1
+        right_path_index_modified = len(randoop_modified) - 1
+        self.suites_comparison(randoop_original[right_path_index_original][2], randoop_modified[right_path_index_modified][2])
 
-        if os.path.isdir(left_randoop_original) and os.path.isdir(left_randoop_modified):
-            self.suites_comparison(left_randoop_original, left_randoop_modified)
-            try:
-                right_randoop_original = randoop_original[4][2]
-                right_randoop_modified = randoop_modified[4][2]
-                self.suites_comparison(right_randoop_original, right_randoop_modified)
-            except:
-                print("It wasn't possible to compare the test suites for the commit: " + str(randoop_original[1][4]))
+    def checking_suites_and_reports(self, path_suite_original, path_suite_modified):
+        if os.path.isdir(path_suite_original) and os.path.isdir(path_suite_modified):
+            if self.all_reports():
+                self.suites_comparison(path_suite_original, path_suite_modified)
+            else:
+                print(
+                    "It wasn't possible to compare the test suites because there are missing reports in paths: " + str(
+                        path_suite_original) + " or " + str(path_suite_modified))
         else:
-            print("It wasn't possible to compare the test suites for commits: " + str(randoop_original[0][4]) + " and " + str(randoop_original[1][4]))
+            print("It wasn't possible to make analysis because there are invalid path suites")
+
+    def all_reports(self):
+        return (os.path.isfile(path_suite_original + "/methods_report.csv") and os.path.isfile(
+            path_suite_modified + "/methods_report.csv")) and (
+                       os.path.isfile(path_suite_original + "/objects_report.csv") and os.path.isfile(
+                   path_suite_modified + "/objects_report.csv"))
 
     def suites_comparison(self, path_suite_original, path_suite_modified):
         methods = self.methods_report_comparison(path_suite_original, path_suite_modified)
@@ -112,7 +120,7 @@ class Report_Analysis:
 
     def write_comparison(self, path_suite_original, path_suite_modified, methods, objects):
         suites_path = path_suite_original[:path_suite_original.rfind("/")]
-        reports_path = suites_path + "/reports"# Change that later
+        reports_path = suites_path + "/reports"  # Change that later
 
         if os.path.isdir(reports_path) is False:
             os.mkdir(reports_path)
@@ -120,7 +128,8 @@ class Report_Analysis:
         suite_name_original = path_suite_original[path_suite_original.rfind("/") + 1:]
         suite_name_modified = path_suite_modified[path_suite_modified.rfind("/") + 1:]
 
-        with open(reports_path + "/methods_report_" + suite_name_original + "_" + suite_name_modified + ".csv", "w") as output_file:
+        with open(reports_path + "/methods_report_" + suite_name_original + "_" + suite_name_modified + ".csv",
+                  "w") as output_file:
             headers = "Methods called,Number of times(Original),Number of times(Modified),Modified - Original,Percentage(Gain/Loss),\n"
             output_file.write(headers)
             for key in methods:
@@ -142,7 +151,8 @@ class Report_Analysis:
 
             output_file.close()
 
-        with open(reports_path + "/objects_report_" + suite_name_original + "_" + suite_name_modified + ".csv", "w") as output_file:
+        with open(reports_path + "/objects_report_" + suite_name_original + "_" + suite_name_modified + ".csv",
+                  "w") as output_file:
             headers = "Classes of objects created,Number of objects created(Original),Number of objects created(Modified),Modified - Original,Percentage(Gain/Loss),Number of unique objects manipulated(Original),Number of unique objects manipulated(Modified),Modified - Original,Percentage(Gain/Loss),\n"
             output_file.write(headers)
             for key in objects:
@@ -173,15 +183,3 @@ class Report_Analysis:
             output_file.close()
 
         print("The analysis of suites " + suite_name_original + " and " + suite_name_modified + " was done")
-
-
-
-
-
-
-
-
-
-
-
-
