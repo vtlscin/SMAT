@@ -22,10 +22,8 @@ class Report_Analysis:
             print("It wasn't possible to make analysis because there are invalid path suites")
 
     def all_reports(self):
-        return (os.path.isfile(path_suite_original + "/methods_report.csv") and os.path.isfile(
-            path_suite_modified + "/methods_report.csv")) and (
-                       os.path.isfile(path_suite_original + "/objects_report.csv") and os.path.isfile(
-                   path_suite_modified + "/objects_report.csv"))
+        return os.path.isfile(path_suite_original + "/methods_report.csv") and os.path.isfile(path_suite_modified + "/methods_report.csv") \
+               and os.path.isfile(path_suite_original + "/objects_report.csv") and os.path.isfile(path_suite_modified + "/objects_report.csv")
 
     def suites_comparison(self, path_suite_original, path_suite_modified):
         methods = self.methods_report_comparison(path_suite_original, path_suite_modified)
@@ -63,6 +61,7 @@ class Report_Analysis:
                 else:
                     method_map = {cells[0]: [0, cells[1]]}
                     methods_data.update(method_map)
+
             return methods_data
         except:
             print("Error on methods_report.csv in " + str(report_path))
@@ -88,22 +87,22 @@ class Report_Analysis:
             for line in lines[1:-1]: # Exclude the first one because contains the headers and the last one because it is a empty line
                 cells = line.split(",")
                 if randoop_original_report:
-                    object_map = {cells[0]: [cells[1], cells[2], 0, 0]}
+                    object_map = {cells[0]: [cells[1], 0, cells[2], 0]}
                     objects_data.update(object_map)
                 elif cells[0] in objects_data: # If the class is already in the dictionary, just change the value in the list
-                    objects_data.get(cells[0])[2] = cells[1]
+                    objects_data.get(cells[0])[1] = cells[1]
                     objects_data.get(cells[0])[3] = cells[2]
                 else:
-                    object_map = {cells[0]: [0, 0, cells[1], cells[2]]}
+                    object_map = {cells[0]: [0, cells[1], 0, cells[2]]}
                     objects_data.update(object_map)
+
             return objects_data
         except:
             print("Error on objects_report.csv in " + str(report_path))
             return {}
 
     def write_comparison(self, path_suite_original, path_suite_modified, methods, objects):
-        suites_path = path_suite_original[
-                      :path_suite_original.rfind("/")]  # Get the directory where the test suites are
+        suites_path = path_suite_original[:path_suite_original.rfind("/")]  # Get the directory where the test suites are
         reports_path = suites_path + "/reports"
 
         if os.path.isdir(reports_path) is False:
@@ -112,58 +111,44 @@ class Report_Analysis:
         suite_name_original = path_suite_original[path_suite_original.rfind("/") + 1:]
         suite_name_modified = path_suite_modified[path_suite_modified.rfind("/") + 1:]
 
-        with open(reports_path + "/methods_report_" + suite_name_original + "_" + suite_name_modified + ".csv",
-                  "w") as output_file:
-            headers = "Methods called,Number of times(Original),Number of times(Modified),Modified - Original,Percentage(Gain/Loss),\n"
-            output_file.write(headers)
-            for key in methods:
-                number_original = int(methods.get(key)[0])
-                number_modified = int(methods.get(key)[1])
-                sub = number_modified - number_original
+        methods_report_name = reports_path + "/methods_report_" + suite_name_original + "_" + suite_name_modified + ".csv"
+        methods_report_headers = "Methods called,Number of times(Original),Number of times(Modified),Modified - Original,Percentage(Gain/Loss)\n"
 
-                if number_original == 0:
-                    relative = "INF"
-                elif number_modified == 0:
-                    relative = "-INF"
-                else:
-                    relative = (sub / number_original) * 100
-                    relative = str(round(relative, 2)).replace(".", ",")
+        self.csv_report(methods_report_name, methods_report_headers, methods, False)
 
-                text = key + "," + str(number_original) + "," + str(number_modified) + "," + str(
-                    sub) + "," + "\"" + relative + "\"%" + "\n"
-                output_file.write(text)
+        objects_report_name = reports_path + "/objects_report_" + suite_name_original + "_" + suite_name_modified + ".csv"
+        objects_report_headers = "Classes of objects created,Number of objects created(Original),Number of objects created(Modified),Modified - Original,Percentage(Gain/Loss),Number of unique objects manipulated(Original),Number of unique objects manipulated(Modified),Modified - Original,Percentage(Gain/Loss)\n"
 
-            output_file.close()
-
-        with open(reports_path + "/objects_report_" + suite_name_original + "_" + suite_name_modified + ".csv",
-                  "w") as output_file:
-            headers = "Classes of objects created,Number of objects created(Original),Number of objects created(Modified),Modified - Original,Percentage(Gain/Loss),Number of unique objects manipulated(Original),Number of unique objects manipulated(Modified),Modified - Original,Percentage(Gain/Loss),\n"
-            output_file.write(headers)
-            for key in objects:
-                number_original = int(objects.get(key)[0])
-                number_original_unique = int(objects.get(key)[1])
-                number_modified = int(objects.get(key)[2])
-                number_modified_unique = int(objects.get(key)[3])
-                sub = number_modified - number_original
-                sub_unique = number_modified_unique - number_original_unique
-
-                if number_original == 0:
-                    relative = "INF"
-                    relative_unique = "INF"
-                elif number_modified == 0:
-                    relative = "-INF"
-                    relative_unique = "-INF"
-                else:
-                    relative = (sub / number_original) * 100
-                    relative = str(round(relative, 2)).replace(".", ",")
-                    relative_unique = (sub_unique / number_original_unique) * 100
-                    relative_unique = str(round(relative_unique, 2)).replace(".", ",")
-
-                text = key + "," + str(number_original) + "," + str(number_modified) + "," + str(
-                    sub) + "," + "\"" + relative + "\"%" + "," + str(number_original_unique) + "," + str(
-                    number_modified_unique) + "," + str(sub_unique) + "," + "\"" + relative_unique + "\"%" + "\n"
-                output_file.write(text)
-
-            output_file.close()
+        self.csv_report(objects_report_name, objects_report_headers, objects, True)
 
         print("The analysis of suites " + suite_name_original + " and " + suite_name_modified + " was done")
+
+    def csv_report(self, path_csv, headers, data, is_object_report):
+        with open(path_csv,"w") as output_file:
+            output_file.write(headers)
+
+            for key in data:
+                text = key + "," + self.get_data(int(data.get(key)[0]), int(data.get(key)[1]))
+
+                if is_object_report:
+                    text += "," + self.get_data(int(data.get(key)[2]), int(data.get(key)[3])) + "\n"
+                else:
+                    text += "\n"
+
+                output_file.write(text)
+
+            output_file.close()
+
+    def get_data(self, number_original, number_modified):
+        sub = number_modified - number_original
+
+        if number_original == 0:
+            relative = "INF"
+        elif number_modified == 0:
+            relative = "-INF"
+        else:
+            relative = (sub / number_original) * 100
+            relative = str(round(relative, 2)).replace(".", ",")
+
+        return str(number_original) + "," + str(number_modified) + "," + str(
+            sub) + "," + "\"" + relative + "\"%"
