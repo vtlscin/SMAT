@@ -38,89 +38,73 @@ class Report_Analysis:
             self.write_comparison(path_suite_original, path_suite_modified, methods, objects)
 
     def methods_report_comparison(self, path_suite_original, path_suite_modified):
-        methods_data = {}
+        methods_data = {} # A dictionary in which the method name is the key and the value returned is a list with
+        # the number of times that the method was called for original randoop and randoop--
 
-        try:
-            methods_report_file = open(path_suite_original + "/methods_report.csv")
-            methods_report = methods_report_file.read()
-            methods_report_file.close()
-
-            lines = methods_report.split("\n")
-            for line in lines[
-                        1:-1]:  # Exclude the first one because contains the headers and the last one because it is a empty line
-                cells = re.split("(?<=\"),", line)
-                method_map = {cells[0]: [cells[1],
-                                         0]}  # A dictionary in which the method name is the key and the number of times that his was called is the value
-                methods_data.update(method_map)
-        except:
-            print("Error on methods_report.csv in " + str(path_suite_original))
-            return {}
-
-        try:
-            methods_report_file = open(path_suite_modified + "/methods_report.csv")
-            methods_report = methods_report_file.read()
-            methods_report_file.close()
-
-            lines = methods_report.split("\n")
-            for line in lines[
-                        1:-1]:  # Exclude the first one because contains the headers and the last one because it is a empty line
-                cells = re.split("(?<=\"),", line)
-                if cells[0] in methods_data:
-                    methods_data.get(cells[0])[1] = cells[1]
-                else:
-                    method_map = {cells[0]: [0, cells[
-                        1]]}  # A dictionary in which the method name is the key and the number of times that his was called is the value
-                    methods_data.update(method_map)
-        except:
-            print("Error on methods_report.csv in " + str(path_suite_modified))
-            return {}
+        methods_data = self.methods_report_analysis(methods_data, path_suite_original + "/methods_report.csv", True)
+        methods_data = self.methods_report_analysis(methods_data, path_suite_modified + "/methods_report.csv", False)
 
         return methods_data
 
-    def objects_report_comparison(self, path_suite_original, path_suite_modified):
-        objects_data = {}
-
+    def methods_report_analysis(self, methods_data, report_path, randoop_original_report):
         try:
-            objects_report_file = open(path_suite_original + "/objects_report.csv")
-            objects_report = objects_report_file.read()
-            objects_report_file.close()
+            methods_report_file = open(report_path)
+            methods_report = methods_report_file.read()
+            methods_report_file.close()
 
-            lines = objects_report.split("\n")
-            for line in lines[
-                        1:-1]:  # Exclude the first one because contains the headers and the last one because it is a empty line
-                cells = line.split(",")
-                object_map = {cells[0]: [cells[1], cells[2], 0,
-                                         0]}  # A dictionary in which the class of the object is the key and the value is a list with both the number of times that a objects from the class were created and how many of them are different from each other
-                objects_data.update(object_map)
-        except:
-            print("Error on objects_report.csv in " + str(path_suite_original))
-            return {}
-
-        try:
-            objects_report_file = open(path_suite_modified + "/objects_report.csv")
-            objects_report = objects_report_file.read()
-            objects_report_file.close()
-
-            lines = objects_report.split("\n")
-            for line in lines[
-                        1:-1]:  # Exclude the first one because contains the headers and the last one because it is a empty line
-                cells = line.split(",")
-                if cells[0] in objects_data:
-                    objects_data.get(cells[0])[2] = cells[1]
-                    objects_data.get(cells[0])[3] = cells[2]
+            lines = methods_report.split("\n")
+            for line in lines[1:-1]:  # Exclude the first one because contains the headers and the last one because it is a empty line
+                cells = re.split("(?<=\"),", line)
+                if randoop_original_report:
+                    method_map = {cells[0]: [cells[1], 0]}
+                    methods_data.update(method_map)
+                elif cells[0] in methods_data: # If the method signature is already in the dictionary, just change the value in the list
+                    methods_data.get(cells[0])[1] = cells[1]
                 else:
-                    object_map = {cells[0]: [0, 0, cells[1], cells[
-                        2]]}  # A dictionary in which the class of the object is the key and the value is a list with both the number of times that a objects from the class were created and how many of them are different from each other
-                    objects_data.update(object_map)
+                    method_map = {cells[0]: [0, cells[1]]}
+                    methods_data.update(method_map)
+            return methods_data
         except:
-            print("Error on methods_report.csv in " + str(path_suite_modified))
+            print("Error on methods_report.csv in " + str(report_path))
             return {}
+
+    def objects_report_comparison(self, path_suite_original, path_suite_modified):
+        objects_data = {}  # A dictionary the class of the object is the key and the value returned is a list with
+        # the number of times that a objects from the class were created and how many of them are different from each
+        # other, in that order, from randoop and randoop--
+
+        objects_data = self.objects_report_analysis(objects_data, path_suite_original + "/objects_report.csv", True)
+        objects_data = self.objects_report_analysis(objects_data, path_suite_modified + "/objects_report.csv", False)
 
         return objects_data
 
+    def objects_report_analysis(self, objects_data, report_path, randoop_original_report):
+        try:
+            objects_report_file = open(report_path)
+            objects_report = objects_report_file.read()
+            objects_report_file.close()
+
+            lines = objects_report.split("\n")
+            for line in lines[1:-1]: # Exclude the first one because contains the headers and the last one because it is a empty line
+                cells = line.split(",")
+                if randoop_original_report:
+                    object_map = {cells[0]: [cells[1], cells[2], 0, 0]}
+                    objects_data.update(object_map)
+                elif cells[0] in objects_data: # If the class is already in the dictionary, just change the value in the list
+                    objects_data.get(cells[0])[2] = cells[1]
+                    objects_data.get(cells[0])[3] = cells[2]
+                else:
+                    object_map = {cells[0]: [0, 0, cells[1], cells[2]]}
+                    objects_data.update(object_map)
+            return objects_data
+        except:
+            print("Error on objects_report.csv in " + str(report_path))
+            return {}
+
     def write_comparison(self, path_suite_original, path_suite_modified, methods, objects):
-        suites_path = path_suite_original[:path_suite_original.rfind("/")]
-        reports_path = suites_path + "/reports"  # Change that later
+        suites_path = path_suite_original[
+                      :path_suite_original.rfind("/")]  # Get the directory where the test suites are
+        reports_path = suites_path + "/reports"
 
         if os.path.isdir(reports_path) is False:
             os.mkdir(reports_path)
