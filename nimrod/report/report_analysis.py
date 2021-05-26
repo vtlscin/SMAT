@@ -12,10 +12,10 @@ class Report_Analysis:
         self.report_writer = Report_Writer()
 
     def start_analysis(self, randoop_original, randoop_modified):
-        self.suites_comparison(randoop_original[0][2], randoop_modified[0][2])
+        self.checking_suites_and_reports(randoop_original[0][2], randoop_modified[0][2])
         right_path_index_original = len(randoop_original) - 1
         right_path_index_modified = len(randoop_modified) - 1
-        self.suites_comparison(randoop_original[right_path_index_original][2], randoop_modified[right_path_index_modified][2])
+        self.checking_suites_and_reports(randoop_original[right_path_index_original][2], randoop_modified[right_path_index_modified][2])
 
     def checking_suites_and_reports(self, path_suite_original, path_suite_modified):
         if os.path.isdir(path_suite_original) and os.path.isdir(path_suite_modified):
