@@ -15,33 +15,46 @@ class Alternative_setup_tool(Randoop_setup):
     def generate_and_run_test_suites(self, evo, scenario, commitBaseSha, commitParentTestSuite, commitOtherParent,
                                      commitMergeSha, conflict_info, tool, projectName):
         # lista com nome do pacote, metodo e classe targets
-        listaPacoteMetodoClasse = self.recuperaClassePacoteMetodo(scenario.merge_scenario.sut_method.replace("|", ","))
+        listaPacoteMetodoClasse = self.recuperaClassePacoteMetodo(scenario.merge_scenario.sut_method.replace("|", ","), scenario.merge_scenario.sut_class)
+
+        listaPartesBasicasReport = ["commit", "projeto"]
+        listaCoberturaProjeto = ["randoop X: cobertura metodo SUA", "randoop Y: cobertura metodo SUA",
+                                 "randoop X: cobertura classe SUA", "randoop Y: cobertura classe SUA",
+                                 "randoop X: cobertura linha SUA", "randoop Y: cobertura linha SUA"]
+        listaCoberturaClasse = ["classeTarget", "randoop X: cobertura metodo CUA", "randoop Y: cobertura metodo CUA",
+                                "randoop X: cobertura linha CUA", "randoop Y: cobertura linha CUA"]
+        listaCoberturaMetodo = ["Metodo Target", "randoop X: cobertura linha MUA", "randoop Y: cobertura linha MUA",
+                                "randoop X: cobertura instruction MUA", "randoop Y: cobertura instruction MUA",
+                                "randoop X: cobertura branch MUA", "randoop Y: cobertura branch MUA"]
+
         print("Gerando analise para projeto ", projectName)
         jacoco = Jacoco(java=evo.project_dep.java)
         for i in range(4):
             commitVersion = self.selectJar(evo, i, commitMergeSha, commitParentTestSuite, commitOtherParent,
                                            commitBaseSha)
 
+            print("Gerando testes para o randoopX")
             path_suite = self.generate_test_suite(scenario, evo.project_dep,
                                                   False)  # Indicacao para instanciar o randoopY
 
+            print("Iniciando analise de dados para o randoopX")
             dadosParaGravacaoRandoopX = self.retornaDadosParaAnalise(evo, path_suite, jacoco,
-                                                                     scenario.merge_scenario.sut_class, listaPacoteMetodoClasse)
+                                                                     scenario.merge_scenario.sut_class,
+                                                                     listaPacoteMetodoClasse)
 
+            print("Gerando testes para o randoopY")
             path_suite_randoopY = self.generate_test_suite(scenario, evo.project_dep,
                                                            True)  # Indicacao para instanciar o randoopY
 
+            print("Iniciando analise de dados para o randoopY")
             dadosParaGravacaoRandoopY = self.retornaDadosParaAnalise(evo, path_suite_randoopY, jacoco,
-                                                                     scenario.merge_scenario.sut_class, listaPacoteMetodoClasse)
+                                                                     scenario.merge_scenario.sut_class,
+                                                                     listaPacoteMetodoClasse)
 
-            self.criaArquivoExcel(dadosParaGravacaoRandoopX[0], dadosParaGravacaoRandoopY[0],
-                                  dadosParaGravacaoRandoopX[1], dadosParaGravacaoRandoopY[1],
-                                  dadosParaGravacaoRandoopX[2], dadosParaGravacaoRandoopY[2], commitVersion,
-                                  projectName, scenario.merge_scenario.sut_class, dadosParaGravacaoRandoopX[3],
-                                  dadosParaGravacaoRandoopX[4], dadosParaGravacaoRandoopY[3],
-                                  dadosParaGravacaoRandoopY[4], listaPacoteMetodoClasse[0], dadosParaGravacaoRandoopX[5],
-                                  dadosParaGravacaoRandoopY[5], dadosParaGravacaoRandoopX[6], dadosParaGravacaoRandoopY[6]
-                                  ,dadosParaGravacaoRandoopX[7], dadosParaGravacaoRandoopY[7])
+            print("Gerando linha do csv para versao", commitVersion)
+            self.criaArquivoExcel(commitVersion, projectName, dadosParaGravacaoRandoopX, dadosParaGravacaoRandoopY, listaPartesBasicasReport,
+                                  listaCoberturaProjeto, listaCoberturaClasse, listaCoberturaMetodo, scenario.merge_scenario.sut_class,
+                                  listaPacoteMetodoClasse[0])
 
     # Metodo que vai atualizar selecionar o jar que vai gerar os testes de acordo com a iteracao
     def selectJar(self, evo, iteracao, commitMerge, commitLeft, commitRight, commitBase):
@@ -64,48 +77,77 @@ class Alternative_setup_tool(Randoop_setup):
             commitVersion = commitMerge
         return commitVersion
 
-    def criaArquivoExcel(self, coberturaClasesX, coberturaClasesY, coberturaMetodosX, coberturaMetodosY,
-                         coberturaLinhasX, coberturaLinhasY
-                         , commitVersion, projectName, classeTarget, coberturaMetodoClasseTargetX,
-                         coberturaLinhaClasseTargetX, coberturaMetodoClasseTargetY, coberturaLinhaClasseTargetY,
-                         nomeMetodoTarget, coberturaLinhaMetodoTargetX, coberturaLinhaMetodoTargetY,
-                         coberturaInstrMetodoTargetX, coberturaInstrMetodoTargetY, coberturaBranchMetodoTargetX,
-                         coberturaBranchMetodoTargetY):
-        if (os.path.isfile("./result_cobertura.csv") == False):
+    def criaArquivoExcel(self, commitVersion, projectName, dadosParaGravacaoRandoopX, dadosParaGravacaoRandoopY, listaPartesBasicasReport,
+                         listaCoberturaProjeto, listaCoberturaClasse, listaCoberturaMetodo, classeTarget, nomeMetodoTarget):
+        if os.path.isfile("./result_cobertura.csv") == False:
             with open("./result_cobertura.csv", 'w', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow(["commit", "projeto", "randoop X: cobertura metodo SUA", "randoop Y: cobertura metodo SUA",
-                                 "randoop X: cobertura classe SUA", "randoop Y: cobertura classe SUA",
-                                 "randoop X: cobertura linha SUA", "randoop Y: cobertura linha SUA", "classeTarget",
-                                 "randoop X: cobertura metodo CUA",
-                                 "randoop Y: cobertura metodo CUA", "randoop X: cobertura linha CUA",
-                                 "randoop Y: cobertura linha CUA", "Metodo Target", "randoop X: cobertura linha MUA",
-                                 "randoop Y: cobertura linha MUA", "randoop X: cobertura instruction MUA",
-                                 "randoop Y: cobertura instruction MUA", "randoop X: cobertura branch MUA",
-                                 "randoop Y: cobertura branch MUA"])
-                writer.writerow([commitVersion, projectName, coberturaMetodosX, coberturaMetodosY, coberturaClasesX,
-                                 coberturaClasesY,
-                                 coberturaLinhasX, coberturaLinhasY, classeTarget, coberturaMetodoClasseTargetX,
-                                 coberturaMetodoClasseTargetY, coberturaLinhaClasseTargetX,
-                                 coberturaLinhaClasseTargetY, nomeMetodoTarget, coberturaLinhaMetodoTargetX,
-                                 coberturaLinhaMetodoTargetY, coberturaInstrMetodoTargetX, coberturaInstrMetodoTargetY,
-                                 coberturaBranchMetodoTargetX, coberturaBranchMetodoTargetY])
+                if (dadosParaGravacaoRandoopX[1][0] is True) & (dadosParaGravacaoRandoopY[1][0] is True): # se possuir classe target
+                    if (dadosParaGravacaoRandoopX[2][0] is True) & (dadosParaGravacaoRandoopY[2][0] is True): # se possuir metodo target
+                        writer = csv.writer(file)
+                        writer.writerow(
+                            [listaPartesBasicasReport[0], listaPartesBasicasReport[1], listaCoberturaProjeto[0], listaCoberturaProjeto[1]
+                                , listaCoberturaProjeto[2], listaCoberturaProjeto[3], listaCoberturaProjeto[4], listaCoberturaProjeto[5],
+                             listaCoberturaClasse[0], listaCoberturaClasse[1], listaCoberturaClasse[2], listaCoberturaClasse[3], listaCoberturaClasse[4]
+                                , listaCoberturaMetodo[0], listaCoberturaMetodo[1], listaCoberturaMetodo[2], listaCoberturaMetodo[3],
+                             listaCoberturaMetodo[4], listaCoberturaMetodo[5], listaCoberturaMetodo[6]])
+                        writer.writerow([commitVersion, projectName, dadosParaGravacaoRandoopX[0][1], dadosParaGravacaoRandoopY[0][1],
+                                         dadosParaGravacaoRandoopX[0][0], dadosParaGravacaoRandoopY[0][0], dadosParaGravacaoRandoopX[0][2],
+                                         dadosParaGravacaoRandoopY[0][2], classeTarget, dadosParaGravacaoRandoopX[1][2],
+                                         dadosParaGravacaoRandoopY[1][2], dadosParaGravacaoRandoopX[1][1], dadosParaGravacaoRandoopY[1][1],
+                                         nomeMetodoTarget, dadosParaGravacaoRandoopX[2][1], dadosParaGravacaoRandoopY[2][1],
+                                         dadosParaGravacaoRandoopX[2][2], dadosParaGravacaoRandoopY[2][2], dadosParaGravacaoRandoopX[2][3],
+                                         dadosParaGravacaoRandoopY[2][3]])
+                    else:
+                        writer = csv.writer(file)
+                        writer.writerow(
+                            [listaPartesBasicasReport[0], listaPartesBasicasReport[1], listaCoberturaProjeto[0], listaCoberturaProjeto[1]
+                                , listaCoberturaProjeto[2], listaCoberturaProjeto[3], listaCoberturaProjeto[4], listaCoberturaProjeto[5],
+                             listaCoberturaClasse[0], listaCoberturaClasse[1], listaCoberturaClasse[2], listaCoberturaClasse[3], listaCoberturaClasse[4]])
+                        writer.writerow([commitVersion, projectName, dadosParaGravacaoRandoopX[0][1], dadosParaGravacaoRandoopY[0][1],
+                                         dadosParaGravacaoRandoopX[0][0], dadosParaGravacaoRandoopY[0][0], dadosParaGravacaoRandoopX[0][2],
+                                         dadosParaGravacaoRandoopY[0][2], classeTarget, dadosParaGravacaoRandoopX[1][2],
+                                         dadosParaGravacaoRandoopY[1][2], dadosParaGravacaoRandoopX[1][1],
+                                         dadosParaGravacaoRandoopY[1][1]])
+                else:
+                    writer = csv.writer(file)
+                    writer.writerow(
+                        [listaPartesBasicasReport[0], listaPartesBasicasReport[1], listaCoberturaProjeto[0], listaCoberturaProjeto[1],
+                         listaCoberturaProjeto[2], listaCoberturaProjeto[3], listaCoberturaProjeto[4], listaCoberturaProjeto[5]])
+                    writer.writerow(
+                        [commitVersion, projectName, dadosParaGravacaoRandoopX[0][1], dadosParaGravacaoRandoopY[0][1],
+                         dadosParaGravacaoRandoopX[0][0], dadosParaGravacaoRandoopY[0][0],
+                         dadosParaGravacaoRandoopX[0][2], dadosParaGravacaoRandoopY[0][2]])
         else:
             with open("./result_cobertura.csv", 'a+') as fd:
-                writer = csv.writer(fd)
-                writer.writerow([commitVersion, projectName, coberturaMetodosX, coberturaMetodosY, coberturaClasesX,
-                                 coberturaClasesY, coberturaLinhasX, coberturaLinhasY, classeTarget,
-                                 coberturaMetodoClasseTargetX,
-                                 coberturaMetodoClasseTargetY, coberturaLinhaClasseTargetX,
-                                 coberturaLinhaClasseTargetY, nomeMetodoTarget, coberturaLinhaMetodoTargetX,
-                                 coberturaLinhaMetodoTargetY, coberturaInstrMetodoTargetX, coberturaInstrMetodoTargetY,
-                                 coberturaBranchMetodoTargetX, coberturaBranchMetodoTargetY])
+                if (dadosParaGravacaoRandoopX[1][0] is True) & (dadosParaGravacaoRandoopY[1][0] is True):  # se possuir classe target
+                    if (dadosParaGravacaoRandoopX[2][0] is True) & (dadosParaGravacaoRandoopY[2][0] is True):  # se possuir metodo target
+                        writer = csv.writer(fd)
+                        writer.writerow([commitVersion, projectName, dadosParaGravacaoRandoopX[0][1], dadosParaGravacaoRandoopY[0][1],
+                                         dadosParaGravacaoRandoopX[0][0], dadosParaGravacaoRandoopY[0][0], dadosParaGravacaoRandoopX[0][2],
+                                         dadosParaGravacaoRandoopY[0][2], classeTarget, dadosParaGravacaoRandoopX[1][2],
+                                         dadosParaGravacaoRandoopY[1][2], dadosParaGravacaoRandoopX[1][1], dadosParaGravacaoRandoopY[1][1],
+                                         nomeMetodoTarget, dadosParaGravacaoRandoopX[2][1], dadosParaGravacaoRandoopY[2][1],
+                                         dadosParaGravacaoRandoopX[2][2], dadosParaGravacaoRandoopY[2][2], dadosParaGravacaoRandoopX[2][3],
+                                         dadosParaGravacaoRandoopY[2][3]])
+                    else:
+                        writer = csv.writer(fd)
+                        writer.writerow([commitVersion, projectName, dadosParaGravacaoRandoopX[0][1], dadosParaGravacaoRandoopY[0][1],
+                                         dadosParaGravacaoRandoopX[0][0], dadosParaGravacaoRandoopY[0][0], dadosParaGravacaoRandoopX[0][2],
+                                         dadosParaGravacaoRandoopY[0][2], classeTarget, dadosParaGravacaoRandoopX[1][2],
+                                         dadosParaGravacaoRandoopY[1][2], dadosParaGravacaoRandoopX[1][1],
+                                         dadosParaGravacaoRandoopY[1][1]])
+                else:
+                    writer = csv.writer(fd)
+                    writer.writerow(
+                        [commitVersion, projectName, dadosParaGravacaoRandoopX[0][1], dadosParaGravacaoRandoopY[0][1],
+                         dadosParaGravacaoRandoopX[0][0], dadosParaGravacaoRandoopY[0][0],
+                         dadosParaGravacaoRandoopX[0][2], dadosParaGravacaoRandoopY[0][2]])
 
     def retornaDadosParaAnalise(self, evo, path_suite, jacoco, classeTarget, listaPacoteMetodoClasse):
         global tagAClasseTarget
         global tagSpanMetodoTarget
 
-        print(classeTarget)
+        print("Classe Target ", classeTarget)
 
         listaJar = evo.project_dep.classes_dir.split(
             ":")  # Melhoria poderia ser feita removendo caractere do final da lista caso ele exista.
@@ -119,15 +161,52 @@ class Alternative_setup_tool(Randoop_setup):
 
         listaJarInstrumentados = listaJarInstrumentados + JACOCOAGENT
 
+        print("Iniciando execucao dos testes")
         self.run_test_suite(listaJarInstrumentados, evo.project_dep.sut_class, listaJarInstrumentados,
                             evo.project_dep)
 
         listaJar = list(filter(lambda x: x != '', listaJar))  # filtra registros vazios da lista
 
-        print(listaJar)
-
+        print("Gerando report em html")
         jacoco.generateReportHtml(path_suite.suite_dir, listaJar)
 
+        print("Gerando analise de todas classes do projeto")
+        dadosReportProjeto = self.reportProjetoCompleto(path_suite)
+
+        print("Gerando analise da classe target")
+        dadosReportClasseTarget = self.reportClasseTarget(path_suite, listaPacoteMetodoClasse)
+
+        print("Gerando analise do metodo target")
+        if ("(" in listaPacoteMetodoClasse[0]) & (")" in listaPacoteMetodoClasse[0]):
+            dadosReportMetodoTarget = self.reportMetodoTarget(path_suite, listaPacoteMetodoClasse)
+        else:
+            dadosReportMetodoTarget = [False]
+
+        return [dadosReportProjeto, dadosReportClasseTarget, dadosReportMetodoTarget]
+
+    # recupera pacote, nome da classe ou metodo target do teste
+    def recuperaClassePacoteMetodo(self, pathMetodo, pathClasse):
+        listaPacoteClasse = pathClasse.split(".")
+        nomeClasse = listaPacoteClasse[len(listaPacoteClasse) - 1] # ultima posicao
+        listaPacoteClasse.remove(nomeClasse)
+        pacote = ".".join(listaPacoteClasse)
+        nomeMetodo = pathMetodo[len(pathClasse) + 1:len(pathMetodo)]
+        nomeMetodo = self.ajustaNomeMetodo(nomeMetodo)
+        print("Metodo target: " + nomeMetodo)
+        print("Classe target: " + nomeClasse)
+        return [nomeMetodo, nomeClasse, pacote]
+
+    # Ajusta nome do metodo removendo pacote do parametro dentro do metodo
+    # Ex : getSchemaFromAnnotation(io.swagger.oas.annotations.media.Schema) ->  getSchemaFromAnnotation(Schema)
+    def ajustaNomeMetodo(self, nomeMetodo):
+        if ("(" in nomeMetodo) & (")" in nomeMetodo) & ("." in nomeMetodo):
+            print("Metodo target precisa de tratamento")
+            posicaoPrimeiroParentese = nomeMetodo.find("(")
+            posicaoUltimoPonto = nomeMetodo.rindex(".")
+            nomeMetodo = nomeMetodo[0:posicaoPrimeiroParentese + 1] + nomeMetodo[posicaoUltimoPonto + 1:len(nomeMetodo)] # contatena por exemplo getSchemaFromAnnotation( + Schema)
+        return nomeMetodo
+
+    def reportProjetoCompleto(self, path_suite):
         reportHtml = codecs.open(path_suite.suite_dir + "/report/index.html", 'r')
 
         soup = BeautifulSoup(reportHtml, 'html.parser')
@@ -136,8 +215,6 @@ class Alternative_setup_tool(Randoop_setup):
 
         tagTr = list(tagFoot.children)[0]  # recupera a tag tr responsavel pela linha de resultados
 
-        print(list(tagTr.children))
-
         resultados = list(tagTr.children)
 
         totalClass = int((resultados[12].get_text()).replace(".", ""))
@@ -145,25 +222,23 @@ class Alternative_setup_tool(Randoop_setup):
 
         porcentagemCoberturaClasse = round((classesCobertas / totalClass) * 100, 2)
 
-        print("Porcentagem de classes cobertas ", porcentagemCoberturaClasse,
-              " Classes cobertas ", classesCobertas)
-
         totalMetodos = int((resultados[10].get_text()).replace(".", ""))
         metodosCobertos = int(totalMetodos - int((resultados[9].get_text()).replace(".", "")))
 
         porcentagemCoberturaMetodo = round((metodosCobertos / totalMetodos) * 100, 2)
-
-        print("Porcentagem de metodos cobertos ", porcentagemCoberturaMetodo,
-              " Metodos cobertas ", metodosCobertos)
 
         totalLinhas = int((resultados[8].get_text()).replace(".", ""))
         linhasCobertas = int(totalLinhas - int((resultados[7].get_text()).replace(".", "")))
 
         porcentagemCoberturaLinhas = round((linhasCobertas / totalLinhas) * 100, 2)
 
-        print("Porcentagem de linhas cobertas ", porcentagemCoberturaLinhas,
-              " Linhas cobertas ",
-              linhasCobertas)
+        return [porcentagemCoberturaClasse, porcentagemCoberturaMetodo, porcentagemCoberturaLinhas]
+
+    def reportClasseTarget(self, path_suite, listaPacoteMetodoClasse):
+        tagAClasseTarget = ''
+        porcentagemCoberturaLinhasClasseTarget= ''
+        porcentagemCoberturaMetodoClasseTarget = ''
+        vaiGerarReportClasse = True
 
         reportClasseTarger = codecs.open(
             path_suite.suite_dir + "/report/" + listaPacoteMetodoClasse[2] + "/index.html",
@@ -180,31 +255,39 @@ class Alternative_setup_tool(Randoop_setup):
                 tagAClasseTarget = tagsA[i]
                 break
 
-        tagTr = list(tagAClasseTarget.parents)[1]  # recupera a tag tr responsavel pela linha de resultados
+        if tagAClasseTarget != '':
+            tagTr = list(tagAClasseTarget.parents)[1]  # recupera a tag tr responsavel pela linha de resultados
 
-        print(list(tagTr.children))
+            resultadosClasseTarget = list(tagTr.children)
 
-        resultadosClasseTarget = list(tagTr.children)
+            totalLinhasClasseTarget = int((resultadosClasseTarget[8].get_text()).replace(".", ""))
+            linhasCobertasClasseTarget = int(
+                totalLinhasClasseTarget - int((resultadosClasseTarget[7].get_text()).replace(".", "")))
 
-        totalLinhasClasseTarget = int((resultadosClasseTarget[8].get_text()).replace(".", ""))
-        linhasCobertasClasseTarget = int(
-            totalLinhasClasseTarget - int((resultadosClasseTarget[7].get_text()).replace(".", "")))
+            porcentagemCoberturaLinhasClasseTarget = round((linhasCobertasClasseTarget / totalLinhasClasseTarget) * 100,
+                                                           2)
 
-        porcentagemCoberturaLinhasClasseTarget = round((linhasCobertasClasseTarget / totalLinhasClasseTarget) * 100, 2)
+            totalMetodosClasseTarget = int((resultadosClasseTarget[10].get_text()).replace(".", ""))
+            metodosCobertosClasseTarget = int(
+                totalMetodosClasseTarget - int((resultadosClasseTarget[9].get_text()).replace(".", "")))
 
-        print("Porcentagem de linhas cobertas classe target", porcentagemCoberturaLinhasClasseTarget,
-              " Linhas cobertas classe target",
-              totalLinhasClasseTarget)
+            porcentagemCoberturaMetodoClasseTarget = round(
+                (metodosCobertosClasseTarget / totalMetodosClasseTarget) * 100,
+                2)
+        else:
+            print("Classe target nao encontrado no projeto")
+            vaiGerarReportClasse = False
 
-        totalMetodosClasseTarget = int((resultadosClasseTarget[10].get_text()).replace(".", ""))
-        metodosCobertosClasseTarget = int(
-            totalMetodosClasseTarget - int((resultadosClasseTarget[9].get_text()).replace(".", "")))
+        # Primeira posicao da lista indica se vai ser gerado um report com analise de classe target
+        return [vaiGerarReportClasse, porcentagemCoberturaLinhasClasseTarget, porcentagemCoberturaMetodoClasseTarget]
 
-        porcentagemCoberturaMetodoClasseTarget = round((metodosCobertosClasseTarget / totalMetodosClasseTarget) * 100,
-                                                       2)
+    def reportMetodoTarget(self, path_suite, listaPacoteMetodoClasse):
+        porcentagemBranchMetodoTarget = ''
+        porcentagemInstrucMetodoTarget = ''
+        linhasCobertasMetodoTarget = ''
+        tagSpanMetodoTarget = ''
 
-        print("Porcentagem de metodos cobertos classe target", porcentagemCoberturaMetodoClasseTarget,
-              " Metodos cobertas classe target", totalMetodosClasseTarget)
+        vaiGerarReportMetodo = True
 
         reportMetodoTarger = codecs.open(
             path_suite.suite_dir + "/report/" + listaPacoteMetodoClasse[2] + "/" + listaPacoteMetodoClasse[1] + ".html",
@@ -220,39 +303,24 @@ class Alternative_setup_tool(Randoop_setup):
             if tagsSpam[i].get_text() == nomeMetodoTarget:  # dentro das tags a escolhe a tag referente a classe target
                 tagSpanMetodoTarget = tagsSpam[i]
                 break
+        if tagSpanMetodoTarget != '':
+            tagTr = list(tagSpanMetodoTarget.parents)[1]
 
-        tagTr = list(tagSpanMetodoTarget.parents)[1]
+            resultadosMetodoTarget = list(tagTr.children)
 
-        print(list(tagTr.children))
+            totalLinhasMetodoTarget = int((resultadosMetodoTarget[8].get_text()).replace(".", ""))
+            linhasCobertasMetodoTarget = int(
+                totalLinhasMetodoTarget - int((resultadosMetodoTarget[7].get_text()).replace(".", "")))
 
-        resultadosMetodoTarget = list(tagTr.children)
+            print("Gerando analise instruct metodo target")
+            porcentagemInstrucMetodoTarget = (resultadosMetodoTarget[2].get_text()).replace("%", "")
 
-        totalLinhasMetodoTarget = int((resultadosMetodoTarget[8].get_text()).replace(".", ""))
-        linhasCobertasMetodoTarget = int(
-            totalLinhasMetodoTarget - int((resultadosMetodoTarget[7].get_text()).replace(".", "")))
+            print("Gerando analise branch metodo target")
+            porcentagemBranchMetodoTarget = (resultadosMetodoTarget[4].get_text()).replace("%", "")
+        else:
+            print("Metodo target nao encontrado na classe target")
+            vaiGerarReportMetodo = False
 
-        porcentagemCoberturaLinhasMetodoTarget = round((linhasCobertasMetodoTarget / totalLinhasMetodoTarget) * 100, 2)
-
-        print("Porcentagem de linhas cobertas metodo target", porcentagemCoberturaLinhasMetodoTarget,
-              " Linhas cobertas metodo target",
-              totalLinhasMetodoTarget)
-
-        porcentagemInstrucMetodoTarget = (resultadosMetodoTarget[2].get_text()).replace("%", "")
-
-        porcentagemBranchMetodoTarget = (resultadosMetodoTarget[4].get_text()).replace("%", "")
-
-        return [porcentagemCoberturaClasse, porcentagemCoberturaMetodo, porcentagemCoberturaLinhas,
-                porcentagemCoberturaMetodoClasseTarget,
-                porcentagemCoberturaLinhasClasseTarget, porcentagemCoberturaLinhasMetodoTarget,
-                porcentagemInstrucMetodoTarget, porcentagemBranchMetodoTarget]
-
-    # recupera pacote, nome da classe ou metodo target do teste
-    def recuperaClassePacoteMetodo(self, pathMetodo):
-        listaNomes = pathMetodo.split(".")
-        nomeMetodo = listaNomes[len(listaNomes) - 1]  # ultima posicao
-        nomeCLasse = listaNomes[len(listaNomes) - 2]  # penultima posicao
-        listaNomes.remove(nomeMetodo)
-        listaNomes.remove(nomeCLasse)
-        pacote = ".".join(listaNomes)
-        return [nomeMetodo, nomeCLasse, pacote]
-
+        # Primeira posicao da lista indica se vai ser gerado um report com analise de metodo target
+        return [vaiGerarReportMetodo, linhasCobertasMetodoTarget, porcentagemInstrucMetodoTarget,
+                porcentagemBranchMetodoTarget]
