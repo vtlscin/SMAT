@@ -21,7 +21,7 @@ class Randoop(SuiteGenerator):
             'randoop.main.Main',
             'gentests',
             '--randomseed=10',
-            '--time-limit=50',
+            '--time-limit=5',
             '--testclass=' + self.sut_class,
             '--junit-output-dir=' + self.suite_dir
         ]
