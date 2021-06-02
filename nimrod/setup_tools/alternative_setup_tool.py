@@ -217,18 +217,18 @@ class Alternative_setup_tool(Randoop_setup):
 
         resultados = list(tagTr.children)
 
-        totalClass = int((resultados[12].get_text()).replace(",", ""))
-        classesCobertas = int(totalClass - int((resultados[11].get_text()).replace(",", "")))
+        totalClass = int((resultados[12].get_text()).replace(".", "").replace(",", ""))
+        classesCobertas = int(totalClass - int((resultados[11].get_text()).replace(".", "").replace(",", "")))
 
         porcentagemCoberturaClasse = round((classesCobertas / totalClass) * 100, 2)
 
-        totalMetodos = int((resultados[10].get_text()).replace(",", ""))
-        metodosCobertos = int(totalMetodos - int((resultados[9].get_text()).replace(",", "")))
+        totalMetodos = int((resultados[10].get_text()).replace(".", "").replace(",", ""))
+        metodosCobertos = int(totalMetodos - int((resultados[9].get_text()).replace(".", "").replace(",", "")))
 
         porcentagemCoberturaMetodo = round((metodosCobertos / totalMetodos) * 100, 2)
 
-        totalLinhas = int((resultados[8].get_text()).replace(",", ""))
-        linhasCobertas = int(totalLinhas - int((resultados[7].get_text()).replace(",", "")))
+        totalLinhas = int((resultados[8].get_text()).replace(".", "").replace(",", ""))
+        linhasCobertas = int(totalLinhas - int((resultados[7].get_text()).replace(".", "").replace(",", "")))
 
         porcentagemCoberturaLinhas = round((linhasCobertas / totalLinhas) * 100, 2)
 
@@ -260,16 +260,16 @@ class Alternative_setup_tool(Randoop_setup):
 
             resultadosClasseTarget = list(tagTr.children)
 
-            totalLinhasClasseTarget = int((resultadosClasseTarget[8].get_text()).replace(",", ""))
+            totalLinhasClasseTarget = int((resultadosClasseTarget[8].get_text()).replace(".", "").replace(",", ""))
             linhasCobertasClasseTarget = int(
-                totalLinhasClasseTarget - int((resultadosClasseTarget[7].get_text()).replace(",", "")))
+                totalLinhasClasseTarget - int((resultadosClasseTarget[7].get_text()).replace(".", "").replace(",", "")))
 
             porcentagemCoberturaLinhasClasseTarget = round((linhasCobertasClasseTarget / totalLinhasClasseTarget) * 100,
                                                            2)
 
-            totalMetodosClasseTarget = int((resultadosClasseTarget[10].get_text()).replace(",", ""))
+            totalMetodosClasseTarget = int((resultadosClasseTarget[10].get_text()).replace(".", "").replace(",", ""))
             metodosCobertosClasseTarget = int(
-                totalMetodosClasseTarget - int((resultadosClasseTarget[9].get_text()).replace(",", "")))
+                totalMetodosClasseTarget - int((resultadosClasseTarget[9].get_text()).replace(".", "").replace(",", "")))
 
             porcentagemCoberturaMetodoClasseTarget = round(
                 (metodosCobertosClasseTarget / totalMetodosClasseTarget) * 100,
@@ -308,9 +308,9 @@ class Alternative_setup_tool(Randoop_setup):
 
             resultadosMetodoTarget = list(tagTr.children)
 
-            totalLinhasMetodoTarget = int((resultadosMetodoTarget[8].get_text()).replace(",", ""))
+            totalLinhasMetodoTarget = int((resultadosMetodoTarget[8].get_text()).replace(".", "").replace(",", ""))
             linhasCobertasMetodoTarget = int(
-                totalLinhasMetodoTarget - int((resultadosMetodoTarget[7].get_text()).replace(",", "")))
+                totalLinhasMetodoTarget - int((resultadosMetodoTarget[7].get_text()).replace(".", "").replace(",", "")))
 
             print("Gerando analise instruct metodo target")
             porcentagemInstrucMetodoTarget = (resultadosMetodoTarget[2].get_text()).replace("%", "")
