@@ -207,15 +207,21 @@ class Alternative_setup_tool(Randoop_setup):
         return nomeMetodo
 
     def reportProjetoCompleto(self, path_suite):
+
         reportHtml = codecs.open(path_suite.suite_dir + "/report/index.html", 'r')
+        print("obteve arquivo de report html")
 
         soup = BeautifulSoup(reportHtml, 'html.parser')
+        print("fez o parse do arquivo de report")
 
         tagFoot = soup.find('tfoot')
+        print("buscou todas as tags tfoot do projeto")
 
         tagTr = list(tagFoot.children)[0]  # recupera a tag tr responsavel pela linha de resultados
+        print("recupera a tag tr responsavel pela linha de resultados")
 
         resultados = list(tagTr.children)
+        print("atribui tag tr dos resultados a uma variavel")
 
         totalClass = int((resultados[12].get_text()).replace(".", ""))
         classesCobertas = int(totalClass - int((resultados[11].get_text()).replace(".", "")))
