@@ -21,7 +21,7 @@ class Project_dependecies:
         self.leftDir = None
         self.rightDir = None
 
-        self.java = Java(self.config['java_home'])
+        self.java = Java()
         self.maven = Maven(self.java, self.config['maven_home'])
         self.tests_dst = self.create_directory_test_destination()
         #self.tests_dst = self.config["tests_dst"]
