@@ -286,6 +286,7 @@ class Alternative_setup_tool(Randoop_setup):
         porcentagemInstrucMetodoTarget = ''
         linhasCobertasMetodoTarget = ''
         tagSpanMetodoTarget = ''
+        porcentagemCoberturaLinhasMetodoTarget = ''
 
         vaiGerarReportMetodo = True
 
@@ -312,6 +313,9 @@ class Alternative_setup_tool(Randoop_setup):
             linhasCobertasMetodoTarget = int(
                 totalLinhasMetodoTarget - int((resultadosMetodoTarget[7].get_text()).replace(".", "").replace(",", "")))
 
+            porcentagemCoberturaLinhasMetodoTarget = round((linhasCobertasMetodoTarget / totalLinhasMetodoTarget) * 100,
+                                                           2)
+
             print("Gerando analise instruct metodo target")
             porcentagemInstrucMetodoTarget = (resultadosMetodoTarget[2].get_text()).replace("%", "")
 
@@ -322,5 +326,5 @@ class Alternative_setup_tool(Randoop_setup):
             vaiGerarReportMetodo = False
 
         # Primeira posicao da lista indica se vai ser gerado um report com analise de metodo target
-        return [vaiGerarReportMetodo, linhasCobertasMetodoTarget, porcentagemInstrucMetodoTarget,
+        return [vaiGerarReportMetodo, porcentagemCoberturaLinhasMetodoTarget, porcentagemInstrucMetodoTarget,
                 porcentagemBranchMetodoTarget]
