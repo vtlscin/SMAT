@@ -285,6 +285,7 @@ class Alternative_setup_tool(Randoop_setup):
         porcentagemBranchMetodoTarget = ''
         porcentagemInstrucMetodoTarget = ''
         linhasCobertasMetodoTarget = ''
+        porcentagemCoberturaLinhasMetodoTarget = ''
         tagSpanMetodoTarget = ''
 
         vaiGerarReportMetodo = True
