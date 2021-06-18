@@ -48,13 +48,13 @@ class TestJava(TestCase):
         java = Java(self.java_home)
 
         self.assertEqual(
-            os.path.join(self.java_home, os.sep.join(['jre', 'bin', 'java'])),
+            os.path.join(self.java_home, os.sep.join(['bin', 'java'])),
             java.java)
 
     def test_maven_wrong_args(self):
         java = Java(self.java_home)
 
-        with self.assertRaises(subprocess.CalledProcessError):
+        with self.assertRaises(RuntimeError):
             java.exec_javac(calculator_java_file(), None, None, 10, '< x')
 
     def test_compile_java_file(self):

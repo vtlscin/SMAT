@@ -9,7 +9,7 @@ class Output_behavior_change_commit_pair(Output):
 
     def formate_output_line(self, project_name, criteria_validation, class_information, method_information):
         if len(criteria_validation) > 1:
-            return [project_name, criteria_validation[3], criteria_validation[4], criteria_validation[5],
+            return [project_name, criteria_validation[4], criteria_validation[5], criteria_validation[8],
                     criteria_validation[0], criteria_validation[1], criteria_validation[2], class_information, method_information]
         else:
             return [project_name, "", "", "", "", "", "", class_information, method_information]
