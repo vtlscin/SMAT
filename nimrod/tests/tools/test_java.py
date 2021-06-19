@@ -54,7 +54,7 @@ class TestJava(TestCase):
     def test_maven_wrong_args(self):
         java = Java(self.java_home)
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(subprocess.CalledProcessError):
             java.exec_javac(calculator_java_file(), None, None, 10, '< x')
 
     def test_compile_java_file(self):
