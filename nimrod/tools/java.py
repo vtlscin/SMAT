@@ -84,7 +84,11 @@ class Java:
                                            stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             print(e)
-            raise RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
+            raise e
+        except RuntimeError as e:
+            print(e)
+            RuntimeError("command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
+            raise e
         except subprocess.TimeoutExpired as e:
             print(e)
             raise e
