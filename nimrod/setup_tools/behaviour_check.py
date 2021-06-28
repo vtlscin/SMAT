@@ -1,4 +1,4 @@
-class Behaviour_change:
+class Behaviour_check:
 
     def check_different_test_results_for_commit_pair(self, parent_one, parent_two, path_suite, commitOneSHA, commitTwoSHA, tool):
         aux = (parent_one.fail_test_set.difference(parent_two.fail_test_set)).difference(parent_two.not_executed_test_set).union(parent_two.fail_test_set.difference(parent_one.fail_test_set)).difference(parent_one.not_executed_test_set)
@@ -8,7 +8,8 @@ class Behaviour_change:
         if len(selected_cases) > 0:
             detected_behavior_change = True
 
-        return [detected_behavior_change, selected_cases, path_suite[1], commitOneSHA, commitTwoSHA, tool]
+        return [detected_behavior_change, selected_cases, path_suite[1], "BEHAVIOR-CHANGE-COMMIT-PAIR", commitOneSHA, commitTwoSHA,
+                "NOT-REQUIRED", "NOT-REQUIRED", tool, parent_one.flaky_test_set.intersection(parent_two.flaky_test_set)]
 
     def get_test_cases_with_files(self, selected_cases, test_cases_with_files):
         selected_cases_with_files = set()
@@ -32,15 +33,17 @@ class Behaviour_change:
 
     def check_conflict_occurrence_for_second_criterion(self, parent_base, parent_left, parent_right, parent_merge, path_suite, commitBase, commitParentTestSuite, commitParentOther, commitMerge, tool):
         not_executed_tests = parent_base.not_executed_test_set.union(parent_left.not_executed_test_set, parent_right.not_executed_test_set, parent_merge.not_executed_test_set)
-        valid_base_left_right_pass = parent_base.ok_tests.intersection(parent_left.ok_tests, parent_right.ok_tests).difference(not_executed_tests)
 
-        valid_base_left_right_fail = parent_base.fail_test_set.intersection(parent_left.fail_test_set, parent_right.fail_test_set).difference(not_executed_tests)
+        valid_base_left_right_pass = parent_base.ok_tests.intersection(parent_left.ok_tests, parent_right.ok_tests).difference(not_executed_tests, parent_base.fail_test_set, parent_left.fail_test_set, parent_right.fail_test_set)
+        valid_base_left_right_fail = parent_base.fail_test_set.intersection(parent_left.fail_test_set, parent_right.fail_test_set).difference(not_executed_tests, parent_base.ok_tests, parent_left.ok_tests, parent_right.ok_tests)
 
-        selected_cases = self.get_test_cases_with_files(valid_base_left_right_pass.difference(parent_merge.fail_test_set).union(valid_base_left_right_fail.difference(parent_merge.ok_tests)), parent_base.fail_test_set_with_files)
+        selected_cases = self.get_test_cases_with_files(valid_base_left_right_pass.difference(parent_merge.ok_tests), parent_merge.fail_test_set_with_files)
+        selected_cases2 = self.get_test_cases_with_files(valid_base_left_right_fail.difference(parent_merge.fail_test_set), parent_base.fail_test_set_with_files)
 
+        final_selected_cases = selected_cases.union(selected_cases2)
         detected_behavior_change = False
 
-        if len(selected_cases) > 0:
+        if len(final_selected_cases) > 0:
             detected_behavior_change = True
 
-        return [detected_behavior_change, selected_cases, path_suite[1], "SECOND-CRITERION", commitBase, commitParentTestSuite, commitParentOther, commitMerge, tool, parent_base.flaky_test_set]
+        return [detected_behavior_change, final_selected_cases, path_suite[1], "SECOND-CRITERION", commitBase, commitParentTestSuite, commitParentOther, commitMerge, tool, parent_base.flaky_test_set]
