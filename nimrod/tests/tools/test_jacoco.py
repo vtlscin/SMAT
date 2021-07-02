@@ -1,3 +1,4 @@
+import unittest
 from unittest import TestCase
 
 from nimrod.tests.utils import get_config
@@ -14,6 +15,7 @@ class TestJacoco(TestCase):
         cls.jacoco = Jacoco(cls.java)
 
     # Teste do comando java -jar jacococli.jar instrument "jar_a_ser_modificado" --dest "local_jar_instrumentado"
+    @unittest.skip("invalid inputs")
     def test_instrument(self):
 
         jarSemModificacaoes = "/home/vinicius/Documentos/UFPE/TCC/mergedataset/cloud-slang/20bac30d9bd76569aa6a4fa1e8261c1a9b5e6f76/original/base/cloudslang-all-0.7.50-SNAPSHOT-jar-with-dependencies.jar"
@@ -21,6 +23,7 @@ class TestJacoco(TestCase):
 
         self.jacoco.execInstrumentJar(jarSemModificacaoes, destinoJarInstrumentado)
 
+    @unittest.skip("invalid inputs")
     def test_runTest(self):
 
         projectJar = "/home/vinicius/Documentos/UFPE/TCC/Resultados/CloudSlang/cloudslang-all/dest/cloudslang-all-0.7.50-SNAPSHOT-jar-with-dependencies.jar"
@@ -29,6 +32,7 @@ class TestJacoco(TestCase):
 
         self.jacoco.createJacocoExec(projectJar, suiteClass, test_class)
 
+    @unittest.skip("invalid inputs")
     def test_generateReport(self):
         jacocoExecDir = "/home/vinicius/Documentos/UFPE/TCC/SMAT/nimrod/tests/tools/jacoco.exec"
         classFile = "/home/vinicius/Documentos/UFPE/TCC/Projetos/cloud-slang/cloudslang-all/target/classes/io/cloudslang/lang/api"

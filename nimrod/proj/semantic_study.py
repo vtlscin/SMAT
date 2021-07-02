@@ -37,7 +37,6 @@ class semantic_study:
 
         self.output_semantic_conflict = Output_semantic_conflicts(os.getcwd().replace("/nimrod/proj","/")+'/output-test-dest/' if os.getcwd().__contains__("/nimrod/proj") else os.getcwd() + "/output-test-dest/", "test_conflicts")
         self.output_coverage_metric = Output_coverage_metric(os.getcwd().replace("/nimrod/proj","/")+'/output-test-dest/' if os.getcwd().__contains__("/nimrod/proj") else os.getcwd() + "/output-test-dest/", "result_cobertura")
-        self.output_behavior_change = Output_behavior_change_commit_pair(os.getcwd().replace("/nimrod/proj", "/"), "behavior_change")
 
         self.output_report = Output_report(config["path_output_csv"])
 
