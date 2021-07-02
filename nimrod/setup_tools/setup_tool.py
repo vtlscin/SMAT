@@ -83,16 +83,6 @@ class Setup_tool(ABC):
         try:
             path_suite = self.generate_test_suite(scenario, evo.project_dep)
 
-            # instrumentar jar
-
-            # atualizar parametros para rodar suite com jar instrumentado
-
-            # atualizar chamada para execucao simplificada: execucao dos testes e geracao dos jacoco.exec
-
-            # mover jacoco.exec para local especifico
-
-            # gerar o report
-
             test_result_base = self.run_test_suite(evo.project_dep.parentReg, evo.project_dep.sut_class,
                                                    evo.project_dep.baseDir, evo.project_dep)
             test_result_parent_test_suite = self.run_test_suite(evo.project_dep.parentReg, evo.project_dep.sut_class,
