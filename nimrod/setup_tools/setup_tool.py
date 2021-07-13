@@ -164,7 +164,7 @@ class Setup_tool(ABC):
     def run_tool_for_commit(self, evo, scenario, jarCommit, commitSha, tool, projectName=None):
         conflict_info = []
         try:
-            self.setup_for_partial_merge_scenario(evo, scenario, jarCommit, jarCommit)
+            self.setup_for_partial_merge_scenario(evo, scenario, jarCommit, jarCommit, jarCommit)
             test_results_left = self.generate_and_run_test_suites_for_commit(evo, scenario, commitSha, conflict_info, tool)
             if (len(test_results_left[0]) > 0):
                 conflict_info = test_results_left[0][1]
