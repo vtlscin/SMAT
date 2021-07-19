@@ -1,6 +1,6 @@
 {
   "java_home": "/home/CIN/vtls/TG/JAVA/jdk1.8.0_202",
-  "maven_home": "/home/CIN/vtls/maven",
+  "maven_home": "/usr/share/maven",
 
   "repo_dir": "",
   "projects_folder": "",
